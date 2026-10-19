@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+/* Design tokens from the approved design draft. Colours meet WCAG AA on their intended grounds.
+   Status colours differ in lightness as well as hue so they read without colour vision. */
+@theme {
+  --font-sans: var(--font-public-sans), system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, serif;
+
+  --color-ink: #16202e;
+  --color-ink-strong: #0f2240;
+  --color-muted: #4a5568;
+  --color-subtle: #5b6676;
+  --color-rule: #d5dbe3;
+  --color-rule-soft: #e3e8ee;
+  --color-surface: #f7f9fc;
+  --color-surface-2: #f2f5f9;
+  --color-band: #0f2a5c;
+  --color-band-text: #c9d6ec;
+  --color-accent: #123d7a;
+  --color-accent-hover: #0b2a57;
+  --color-accent-soft: #e8eef8;
+
+  --color-status-published: #123d7a;
+  --color-status-notfound: #6b7685;
+  --color-status-uncertain: #b15c00;
+  --color-status-unassessed: #9aa3af;
+
+  --color-warn-bg: #fff7e6;
+  --color-warn-rule: #f0d9a8;
+  --color-warn-text: #5c3d00;
+  --color-danger: #8a1c1c;
+  --color-danger-bg: #fdecec;
+  --color-ok: #1f5f3a;
+  --color-ok-bg: #e9f5ee;
+}
+
+html {
+  color: var(--color-ink);
+  background: #ffffff;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+/* In the base layer so Tailwind text-* utilities on links (nav, footer, buttons) still win. */
+@layer base {
+  a {
+    color: var(--color-accent);
+    text-underline-offset: 2px;
+  }
+  a:hover {
+    color: var(--color-accent-hover);
+  }
+  /* Links inside running text are underlined so they never rely on colour alone. */
+  p a,
+  li a,
+  dd a,
+  td a {
+    text-decoration: underline;
+  }
+}
+
+:focus-visible {
+  outline: 3px solid #f5b400;
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+}
+.skip-link:focus {
+  left: 16px;
+  top: 8px;
+  z-index: 50;
+  background: #fff;
+  padding: 8px 12px;
+  border: 2px solid var(--color-accent);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
