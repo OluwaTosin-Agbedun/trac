@@ -57,6 +57,9 @@ export const CATEGORY_TABS: readonly CategoryTab[] = [
   { label: "Federal universities", ownership: "federal", type: "university" },
   { label: "Federal polytechnics", ownership: "federal", type: "polytechnic" },
   { label: "Federal monotechnics", ownership: "federal", type: "monotechnic" },
+  { label: "State universities", ownership: "state", type: "university" },
+  { label: "State polytechnics", ownership: "state", type: "polytechnic" },
+  { label: "State monotechnics", ownership: "state", type: "monotechnic" },
 ];
 
 export function activeCategory(f: DirectoryFilters): CategoryTab | undefined {

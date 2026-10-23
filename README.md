@@ -51,8 +51,9 @@ npm run check:bundle   # built client assets scan (after build)
 
 ## Importing the tracker spreadsheet
 
-Federal institutions only: state sections in a file are left out. The quickest route is the script,
-which stages the file, commits safe rows as private drafts and shows it as the public report:
+Federal and state universities, polytechnics and monotechnics are loaded. The quickest route is the
+script, which stages the file, commits safe rows as private drafts and adds the institutions to the
+verified register:
 
 ```bash
 npm run import:tracker -- "path/to/Financial Transparency Compliance Report.xlsx"
@@ -62,8 +63,9 @@ npm run import:tracker -- "path/to/Financial Transparency Compliance Report.xlsx
 
 In the CMS, an administrator opens **Import centre**, uploads the tracker as an Excel workbook (.xlsx),
 CSV or tab-separated text, checks the preview (held rows and rows matching an existing institution
-need a decision), then commits, and presses **Show this spreadsheet on the public site** to make it the
-report on the public Institutions page. Commits create private drafts only. Excel uploads keep the real web
+need a decision), then commits, and presses **Add these institutions to the register**. Each new
+institution becomes a register record to verify; existing records are never overwritten, and the
+spreadsheet's Yes/No ticks are kept only as private hints for editors. Commits create private drafts only. Excel uploads keep the real web
 addresses behind linked cells. Guessed values (a repaired web address, a town in the state column) are
 never written into drafts; editors confirm them from the import record.
 
@@ -80,10 +82,19 @@ Legacy TRUE/FALSE values stay on the import rows as unverified claims and are ne
 
 ## Status
 
-- **Public site:** overview and the compliance report (every federal university, polytechnic and
-  monotechnic with the status of each of the nine indicators and a key explaining them), published
+- **Public site:** overview and the verified compliance register (federal and state universities,
+  polytechnics and monotechnics). Only records verified by a second reviewer are shown, each with
+  its homepage, disclosure page, and per-indicator status, reporting year, evidence link and date
+  checked; unverified records show "Verification in progress". Statuses include partial,
+  temporarily inaccessible and explicitly nil, and the score follows the published rule on
+  **How we score** (`/methodology`, generated from `src/lib/register.ts`). Also published
   profiles, release history, evidence pages and comparison. It uses an editorial
   WordPress-style design with the Athena Centre and Federal Ministry of Education partnership band.
+- **Compliance report (`/admin/report`):** one source record per institution. Editors record the
+  sources and assessments; a reviewer or administrator who did not edit the record verifies it
+  (enforced in the database, bound to a content hash) or returns it with a note. A link checker
+  flags dead links, homepage-only links, redirects to the homepage and links to another
+  institution's website (SSRF-safe fetcher).
 - **Team CMS (`/admin`):** dashboard with getting-started steps and quick actions, institution
   directory and editor, review queue with comparison and preview, publish, return and withdraw,
   import centre (Excel, CSV, TSV), team, invitations (revocable) and sign-in lock clearing, and a

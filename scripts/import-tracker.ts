@@ -1,7 +1,7 @@
 // Load a tracker spreadsheet and show it as the public compliance report, without the CMS.
 //   node scripts/import-tracker.ts <file.xlsx|.csv|.tsv> [--no-commit] [--no-publish]
 //
-// Federal sections only. It stages the file (idempotent by content), commits the safe rows as private
+// Federal and state sections. It stages the file (idempotent by content), commits the safe rows as private
 // drafts, and shows it on the public Institutions page. Held rows wait for a decision in the CMS.
 //
 // It acts as a "Spreadsheet import" service member that has no password (it cannot sign in) and is
@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defaultLocalDbDir, localDatabaseInUse, migrate, openPglite, openPostgres, runAs, type Driver } from "../src/server/db/core.ts";
-import { federalOnly, parseTrackerCsv, parseTrackerRecords, parseTrackerTsv, summarise } from "../src/lib/import/trackerTsv.ts";
+import { parseTrackerCsv, parseTrackerRecords, parseTrackerTsv, summarise } from "../src/lib/import/trackerTsv.ts";
 import { readTrackerWorkbook } from "../src/lib/import/trackerXlsx.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -59,8 +59,8 @@ if (ext === "xlsx") {
   parsed = ext === "csv" ? parseTrackerCsv(text) : parseTrackerTsv(text);
   parser = ext === "csv" ? "trackerCsv@2" : "trackerTsv@2";
 }
-const fed = federalOnly(parsed);
-console.log(`Read ${fed.rows.length} federal rows (${fed.excludedStateRows} state rows left out).`);
+const fed = parsed;
+console.log(`Read ${fed.rows.length} institution rows.`);
 
 const driver = await open();
 try {
@@ -74,7 +74,7 @@ try {
   const as = (sql: string, params: unknown[] = []) => runAs(driver, { kind: "user", userId: IMPORTER }, (tx) => tx.query(sql, params));
   const [{ id }] = await as("select stage_import($1, $2, $3, $4, $5, $6) as id", [
     name, text, fed.reportedAsOf, parser,
-    JSON.stringify({ ...summarise(fed), excludedStateRows: fed.excludedStateRows, ignored: fed.ignored }), JSON.stringify(fed.rows),
+    JSON.stringify({ ...summarise(fed), ignored: fed.ignored }), JSON.stringify(fed.rows),
   ]) as { id: string }[];
   console.log(`Staged as import ${id}.`);
   if (!noCommit) {

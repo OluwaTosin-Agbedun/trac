@@ -5,9 +5,10 @@ import type { FormState } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { startDraftAction, submitRevisionAction } from "../actions";
 import { ActionMessage } from "./ActionMessage";
+import { boundAction } from "@/lib/boundAction";
 
 export function StartDraftForm({ institutionId, label = "Start a new draft" }: { institutionId: string; label?: string }) {
-  const [state, action] = useActionState(startDraftAction.bind(null, institutionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(startDraftAction, institutionId), undefined as FormState);
   return (
     <form action={action} className="flex flex-col gap-3">
       <ActionMessage state={state} keepsValues={false} />
@@ -23,7 +24,7 @@ export function SubmitRevisionForm({ revisionId, lockVersion, problemCount }: {
   lockVersion: number;
   problemCount: number;
 }) {
-  const [state, action] = useActionState(submitRevisionAction.bind(null, revisionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(submitRevisionAction, revisionId), undefined as FormState);
   return (
     <form action={action} className="flex flex-col gap-3">
       <ActionMessage state={state} keepsValues={false} />

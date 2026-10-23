@@ -6,6 +6,7 @@ import { useActionState } from "react";
 import { Field, FormMessage, describedBy, inputClass, type FormState } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { assignInstitutionAction } from "../actions";
+import { boundAction } from "@/lib/boundAction";
 
 export type AssignOption = { userId: string; displayName: string; role: string };
 
@@ -17,7 +18,7 @@ export function AssignForm({ institutionId, editors, reviewers, current }: {
   reviewers: AssignOption[];
   current: { editorId: string | null; reviewerId: string | null; dueOn: string | null } | null;
 }) {
-  const [state, action] = useActionState(assignInstitutionAction.bind(null, institutionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(assignInstitutionAction, institutionId), undefined as FormState);
   const e = state?.errors ?? {};
   const failed = state?.ok === false;
   const editorValue = failed ? state?.values?.editor_id ?? "" : current?.editorId ?? "";

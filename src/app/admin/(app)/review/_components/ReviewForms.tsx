@@ -3,9 +3,10 @@ import { useActionState } from "react";
 import { Field, FormMessage, describedBy, textareaClass, type FormState } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { publishAction, reopenAction, reviewDecisionAction, withdrawAction } from "../actions";
+import { boundAction } from "@/lib/boundAction";
 
 export function DecisionForm({ revisionId, selfReview, isAdmin }: { revisionId: string; selfReview: boolean; isAdmin: boolean }) {
-  const [state, action] = useActionState(reviewDecisionAction.bind(null, revisionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(reviewDecisionAction, revisionId), undefined as FormState);
   const e = state?.errors ?? {};
   const v = state?.values ?? {};
   return (
@@ -47,7 +48,7 @@ export function DecisionForm({ revisionId, selfReview, isAdmin }: { revisionId: 
 }
 
 export function PublishForm({ revisionId }: { revisionId: string }) {
-  const [state, action] = useActionState(publishAction.bind(null, revisionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(publishAction, revisionId), undefined as FormState);
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormMessage state={state} />
@@ -64,7 +65,7 @@ export function PublishForm({ revisionId }: { revisionId: string }) {
 }
 
 export function WithdrawForm({ institutionId }: { institutionId: string }) {
-  const [state, action] = useActionState(withdrawAction.bind(null, institutionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(withdrawAction, institutionId), undefined as FormState);
   const e = state?.errors ?? {};
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
@@ -86,7 +87,7 @@ export function WithdrawForm({ institutionId }: { institutionId: string }) {
 }
 
 export function ReopenForm({ revisionId }: { revisionId: string }) {
-  const [state, action] = useActionState(reopenAction.bind(null, revisionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(reopenAction, revisionId), undefined as FormState);
   const e = state?.errors ?? {};
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>

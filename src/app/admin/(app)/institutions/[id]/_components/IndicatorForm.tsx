@@ -10,6 +10,7 @@ import {
 import type { EditorIndicator } from "@/server/data/cms/editor";
 import { saveIndicatorAction } from "../actions";
 import { ActionMessage } from "./ActionMessage";
+import { boundAction } from "@/lib/boundAction";
 
 const SCALE_LABEL: Record<ValueScale, string> = {
   units: "Units (amount written in full)",
@@ -28,7 +29,7 @@ export function IndicatorForm({ revisionId, lockVersion, indicator, kind, label,
   label: string;
   editable: boolean;
 }) {
-  const [state, action] = useActionState(saveIndicatorAction.bind(null, revisionId, indicator.key), undefined as FormState);
+  const [state, action] = useActionState(boundAction(saveIndicatorAction, revisionId, indicator.key), undefined as FormState);
   const e = state?.errors ?? {};
   const v = (k: Key): string => {
     const typed = state?.values?.[k];

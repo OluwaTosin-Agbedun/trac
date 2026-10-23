@@ -29,7 +29,16 @@ export default function HelpPage() {
         </p>
       </div>
 
-      <Task n={1} title="Add or update an institution" who="Editors">
+      <Task n={1} title="Verify the compliance report (one record per institution)" who="Editors, then a second reviewer">
+        <li>Open <Link href="/admin/report">Compliance report</Link>, choose a category and press <strong>Edit</strong> on an institution.</li>
+        <li>Enter the institution’s own homepage and the disclosure page (the page that shows the information, not the homepage).</li>
+        <li>For each indicator choose a status: Published, Partially published, Explicitly nil, Not found, Temporarily inaccessible, Not applicable (with a reason) or Not yet assessed. Add the reporting year, the evidence link (or leave it blank to use the disclosure page) and the date you checked.</li>
+        <li>Press <strong>Save for verification</strong>, then <strong>Check links now</strong>: dead links, homepage-only links and links to another institution’s website are flagged.</li>
+        <li>A reviewer or administrator who did not edit the record opens the evidence and presses <strong>Verify and publish</strong>, or returns it with a note. Only verified records are public; the score follows the published rule on <Link href="/methodology">How we score</Link>.</li>
+        <li>The spreadsheet’s Yes/No ticks appear beside each indicator as unverified hints only. To add institutions from a new spreadsheet, upload it in <Link href="/admin/imports">Imports</Link> and press <strong>Add these institutions to the register</strong>; existing records are never overwritten.</li>
+      </Task>
+
+      <Task n={2} title="Add or update an institution" who="Editors">
         <li>Open <Link href="/admin/institutions">Institutions</Link>. Search for the name, or use <strong>Add institution</strong>.</li>
         <li>On the institution page, press <strong>Start a new draft</strong> if there is no open draft.</li>
         <li>Fill in the profile (head, bursar, website) and the date you last checked the official sources. Press <strong>Save profile</strong>.</li>
@@ -37,7 +46,7 @@ export default function HelpPage() {
         <li>Press <strong>Submit for review</strong>. The draft locks so the reviewer sees exactly what you submitted.</li>
       </Task>
 
-      <Task n={2} title="Review and publish" who="Reviewers and administrators">
+      <Task n={3} title="Review and publish" who="Reviewers and administrators">
         <li>Open the <Link href="/admin/review">Review queue</Link> and choose a submission. Changes from the public version are highlighted.</li>
         <li>Check each published finding has a period and evidence. Then <strong>Approve</strong>, or <strong>Request changes</strong> with a note for the editor.</li>
         <li>After approving, open <strong>Preview public page</strong>, tick the confirmation box and press <strong>Publish approved version</strong>.</li>
@@ -46,7 +55,7 @@ export default function HelpPage() {
         <li>If something published is wrong, open the institution and use <strong>Withdraw from the public site</strong> with a reason. Every release of that institution leaves the public site until a corrected version is published.</li>
       </Task>
 
-      <Task n={3} title="Load the tracker spreadsheet" who="Administrators">
+      <Task n={4} title="Load the tracker spreadsheet" who="Administrators">
         <li>Upload the tracker as an Excel workbook (.xlsx), a CSV file or tab-separated text on <Link href="/admin/imports">Imports</Link>. You see a preview first; nothing is saved to the institutions yet.</li>
         <li>Rows with problems (no name, possible duplicate, unusable website) and rows whose name matches an institution already in the CMS need a decision. For each, choose <strong>Create</strong>, <strong>Match</strong> to the existing institution, or <strong>Skip</strong> with a reason.</li>
         <li>Web addresses the importer had to guess (for example one missing “https://”) and towns written in the state column are not copied into drafts. Editors confirm them on the institution page, where the original spreadsheet values are shown.</li>
@@ -54,7 +63,7 @@ export default function HelpPage() {
         <li>Uploading the same file twice is safe; it simply opens the existing import.</li>
       </Task>
 
-      <Task n={4} title="Manage the team" who="Administrators">
+      <Task n={5} title="Manage the team" who="Administrators">
         <li>On <Link href="/admin/team">Team and settings</Link>, enter a person&apos;s email and role, then press <strong>Create invitation link</strong>.</li>
         <li>Copy the link and send it to them yourself. It works once and expires in 7 days.</li>
         <li>Change a member&apos;s role or deactivate them from the same page. Deactivating signs them out everywhere and cancels invitations they sent.</li>
@@ -63,7 +72,7 @@ export default function HelpPage() {
         <li>Roles: <strong>Data editor</strong> edits drafts · <strong>Reviewer and publisher</strong> approves and publishes · <strong>Administrator</strong> also manages imports and the team.</li>
       </Task>
 
-      <Task n={5} title="Use the research assistant" who="Everyone; websites approved by administrators">
+      <Task n={6} title="Use the research assistant" who="Everyone; websites approved by administrators">
         <li>On an institution&apos;s page, open <strong>Research assistant</strong> and add its official website (for example unilag.edu.ng). An administrator approves it.</li>
         <li>Press <strong>Request a scan</strong>. The assistant reads only the approved website, politely, and proposes values with the exact text it found.</li>
         <li>For each proposal compare the quote with the source, then <strong>Accept into draft</strong>, <strong>Edit before accepting</strong> (with a reason), or <strong>Reject</strong>. Accepted values go into the draft with the source as evidence.</li>

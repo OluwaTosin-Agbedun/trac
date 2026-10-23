@@ -1,5 +1,47 @@
 # Progress
 
+## Update 23 Oct 2026: the verified register (the Chancellor's requirements)
+
+- **Unverified ticks are off the public site.** Migration 0014 marks every record unverified, and the
+  public functions (including the older ones a previous build calls) return verified content only.
+  Visitors see "Verification in progress" until a record is verified.
+- **One source record per institution** (`/admin/report`): homepage, disclosure page, up to three
+  extra documents, and for each of the nine indicators a status, reporting year, evidence link,
+  date checked and public note.
+- **Statuses:** Published, Partially published, Explicitly nil, Not found, Temporarily inaccessible,
+  Not applicable (reason required) and Not yet assessed.
+- **Second-person verification:** a reviewer or administrator who did not edit the record verifies
+  it. The database enforces this, binds the decision to a content hash so nothing changes between
+  reading and verifying, and refuses incomplete records (missing homepage, evidence, year or date
+  checked). Reviewers can return a record with a note.
+- **Link checker:** per record or in batches of eight. Flags dead links, homepage-only links,
+  redirects to the homepage, and links on another institution's website (the FUPRE link on the PTI
+  row, for example). Uses the SSRF-safe fetcher.
+- **Published scoring rule:** `src/lib/register.ts` is the only scoring code; the public "How we
+  score" page is generated from it. Partial counts half; nil counts as disclosed; inaccessible, not
+  applicable and not assessed are excluded; no overall label until every indicator is assessed.
+- **Public pages:** a record page per institution with the evidence for each indicator, the
+  reporting year, date checked and the verification date.
+- Imports now only add institutions not already in the register; they never overwrite verified work.
+
+## Update 23 Oct 2026: quick report editor and a server-freeze fix
+
+- **CMS → Compliance report** (`/admin/report`): the public report table, edited directly.
+  - Reviewers and administrators edit any institution: name, category, state, head, bursar,
+    website, report status, and each indicator (Published, Not published, Not recorded).
+  - Saving updates the public Institutions page at once. Every change is audited with the
+    values before and after.
+  - Administrators add or remove institutions, set the "as at" date, and show or hide the
+    report. Uploading a spreadsheet and showing it replaces the table.
+  - Migration 0012 keeps the earlier public function working, so deploying and migrating can
+    happen in either order.
+- **Freeze fixed:** a form posted before the page's JavaScript loaded made React's server render
+  wait forever on a freshly bound server action, until the server ran out of memory. Forms now
+  reuse one binding per record (`src/lib/boundAction.ts`). Checked in a browser: the same post
+  now completes in about 2 seconds.
+- The public Institutions page shows a calm message instead of an error page if the report
+  cannot be loaded (for example, before migrations have been run).
+
 ## Update 18 Oct 2026: clean start, Excel import, security review fixes, research assistant
 
 - **Clean start:** the demonstration "(TEST DATA)" institutions, pre-loaded drafts and demo accounts are

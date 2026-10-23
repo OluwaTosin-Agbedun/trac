@@ -3,6 +3,7 @@ import { useActionState, useState } from "react";
 import { Field, FormMessage, inputClass, textareaClass, type FormState } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { commitImportAction, decideRowAction, hideReportAction, showReportAction, stageImportAction } from "../actions";
+import { boundAction } from "@/lib/boundAction";
 
 export function UploadForm() {
   const [state, action] = useActionState(stageImportAction, undefined as FormState);
@@ -21,7 +22,7 @@ export function UploadForm() {
 }
 
 export function CommitForm({ importId, ready }: { importId: string; ready: number }) {
-  const [state, action] = useActionState(commitImportAction.bind(null, importId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(commitImportAction, importId), undefined as FormState);
   return (
     <form action={action} className="flex flex-col gap-3">
       <FormMessage state={state} />
@@ -37,7 +38,7 @@ export function DecisionForm({ importId, rowId, unnamed, options, suggested = nu
   /** An existing institution with the same name: offered first and preselected. */
   suggested?: { id: string; name: string } | null;
 }) {
-  const [state, action] = useActionState(decideRowAction.bind(null, importId, rowId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(decideRowAction, importId, rowId), undefined as FormState);
   const [decision, setDecision] = useState(unnamed || suggested ? "match_existing" : "create_new");
   const choices = suggested ? [suggested, ...options.filter((o) => o.id !== suggested.id)] : options;
   return (
@@ -85,13 +86,13 @@ export function DecisionForm({ importId, rowId, unnamed, options, suggested = nu
 }
 
 export function ReportForm({ importId, shown }: { importId: string; shown: boolean }) {
-  const [state, action] = useActionState(shown ? hideReportAction : showReportAction.bind(null, importId), undefined as FormState);
+  const [state, action] = useActionState(shown ? hideReportAction : boundAction(showReportAction, importId), undefined as FormState);
   return (
     <form action={action} className="flex flex-col gap-3">
       <FormMessage state={state} />
       <div>
-        <SubmitButton variant={shown ? "secondary" : "primary"} pendingLabel={shown ? "Hiding…" : "Publishing…"}>
-          {shown ? "Hide from the public site" : "Show this spreadsheet on the public site"}
+        <SubmitButton variant={shown ? "secondary" : "primary"} pendingLabel={shown ? "Hiding…" : "Adding…"}>
+          {shown ? "Hide the report from the public site" : "Add these institutions to the register"}
         </SubmitButton>
       </div>
     </form>

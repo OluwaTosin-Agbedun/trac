@@ -6,6 +6,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { INDICATORS } from "@/lib/indicators";
 import { addEvidenceAction, removeEvidenceAction } from "../actions";
 import { ActionMessage } from "./ActionMessage";
+import { boundAction } from "@/lib/boundAction";
 
 export function AddEvidenceForm({ revisionId, lockVersion, defaultIndicator, idPrefix, today }: {
   revisionId: string;
@@ -16,7 +17,7 @@ export function AddEvidenceForm({ revisionId, lockVersion, defaultIndicator, idP
   /** Today's Lagos date (yyyy-mm-dd), computed on the server. */
   today: string;
 }) {
-  const [state, action] = useActionState(addEvidenceAction.bind(null, revisionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(addEvidenceAction, revisionId), undefined as FormState);
   const e = state?.errors ?? {};
   const v = (k: string, fallback = "") => state?.values?.[k] ?? fallback;
   const id = (k: string) => `${idPrefix}-ev-${k}`;
@@ -91,7 +92,7 @@ export function RemoveEvidenceForm({ revisionId, lockVersion, evidenceId, label 
   evidenceId: string;
   label: string;
 }) {
-  const [state, action] = useActionState(removeEvidenceAction.bind(null, revisionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(removeEvidenceAction, revisionId), undefined as FormState);
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="lock_version" value={lockVersion} />

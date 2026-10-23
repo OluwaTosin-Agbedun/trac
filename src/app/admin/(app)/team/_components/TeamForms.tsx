@@ -3,6 +3,7 @@ import { useActionState } from "react";
 import { Field, FormMessage, inputClass, type FormState } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { clearLockAction, inviteAction, revokeInviteAction, updateMemberAction, type InviteState } from "../actions";
+import { boundAction } from "@/lib/boundAction";
 
 const ROLE_LABEL = { editor: "Data editor", reviewer: "Reviewer and publisher", admin: "Administrator" } as const;
 
@@ -36,7 +37,7 @@ export function InviteForm() {
 }
 
 export function RevokeInviteForm({ inviteId }: { inviteId: string }) {
-  const [state, action] = useActionState(revokeInviteAction.bind(null, inviteId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(revokeInviteAction, inviteId), undefined as FormState);
   return (
     <form action={action} className="flex items-center gap-2">
       <SubmitButton variant="quiet" pendingLabel="Revoking…">Revoke</SubmitButton>
@@ -46,7 +47,7 @@ export function RevokeInviteForm({ inviteId }: { inviteId: string }) {
 }
 
 export function ClearLockForm({ userId }: { userId: string }) {
-  const [state, action] = useActionState(clearLockAction.bind(null, userId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(clearLockAction, userId), undefined as FormState);
   return (
     <form action={action} className="mt-2 flex flex-wrap items-center gap-2">
       <SubmitButton variant="quiet" pendingLabel="Clearing…">Clear sign-in lock</SubmitButton>
@@ -56,7 +57,7 @@ export function ClearLockForm({ userId }: { userId: string }) {
 }
 
 export function MemberForm({ userId, role, active, self }: { userId: string; role: string; active: boolean; self: boolean }) {
-  const [state, action] = useActionState(updateMemberAction.bind(null, userId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(updateMemberAction, userId), undefined as FormState);
   if (self) return <span className="text-[13px] text-muted">You cannot change your own access.</span>;
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">

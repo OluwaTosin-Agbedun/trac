@@ -7,7 +7,7 @@
 // Every request runs inside one transaction that first switches to a request role
 // (anon | authenticated) and sets the verified user id, so grants and RLS apply.
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -46,11 +46,18 @@ export async function runAs<T>(driver: Driver, actor: Actor, fn: (tx: Queryable)
   });
 }
 
+// The process holding the local database refreshes its lock file every LOCK_REFRESH_MS. A lock not
+// refreshed for LOCK_STALE_MS is abandoned (the holder crashed or was killed), even if the operating
+// system has since given its process id to an unrelated program, as Windows often does.
+const LOCK_REFRESH_MS = 10_000;
+const LOCK_STALE_MS = 30_000;
+
 /** True when another live process holds the local database lock. */
 function lockHeldElsewhere(lockFile: string): boolean {
   if (!existsSync(lockFile)) return false;
   const pid = Number.parseInt(readFileSync(lockFile, "utf8").trim(), 10);
   if (!Number.isInteger(pid) || pid === process.pid) return false;
+  if (Date.now() - statSync(lockFile).mtimeMs > LOCK_STALE_MS) return false;
   try {
     process.kill(pid, 0); // throws if the process no longer exists
     return true;
@@ -108,6 +115,15 @@ async function openPgliteInstance(dataDir: string | null): Promise<Driver> {
       throw new LocalDatabaseBusyError(`Another process is using the local database (${lockFile}). Stop it, then retry.`);
     }
     writeFileSync(lockFile, String(process.pid));
+    // Keep the lock fresh while this process lives; a crashed holder's lock goes stale by itself.
+    const refresh = setInterval(() => {
+      try {
+        if (readFileSync(lockFile, "utf8").trim() === String(process.pid)) utimesSync(lockFile, new Date(), new Date());
+      } catch {
+        /* best effort */
+      }
+    }, LOCK_REFRESH_MS);
+    refresh.unref?.();
   }
   const pg = dataDir ? new PGlite(dataDir) : new PGlite();
   try {

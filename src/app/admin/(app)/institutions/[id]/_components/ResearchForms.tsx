@@ -9,6 +9,7 @@ import {
   acceptAllAction, acceptProposalAction, addHostAction, cancelScanAction, decideHostAction, rejectProposalAction,
   requestScanAction, runQueuedScansAction,
 } from "../../../research/actions";
+import { boundAction } from "@/lib/boundAction";
 
 function Inline({ state }: { state: FormState }) {
   if (!state?.message) return <span aria-live="polite" className="sr-only" />;
@@ -16,7 +17,7 @@ function Inline({ state }: { state: FormState }) {
 }
 
 export function AddHostForm({ institutionId, suggested, isAdmin }: { institutionId: string; suggested: string | null; isAdmin: boolean }) {
-  const [state, action] = useActionState(addHostAction.bind(null, institutionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(addHostAction, institutionId), undefined as FormState);
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormMessage state={state} />
@@ -37,7 +38,7 @@ export function AddHostForm({ institutionId, suggested, isAdmin }: { institution
 }
 
 export function HostDecisionForm({ hostId, approved }: { hostId: string; approved: boolean }) {
-  const [state, action] = useActionState(decideHostAction.bind(null, hostId, !approved), undefined as FormState);
+  const [state, action] = useActionState(boundAction(decideHostAction, hostId, !approved), undefined as FormState);
   return (
     <form action={action} className="flex flex-wrap items-center gap-2">
       <SubmitButton variant={approved ? "quiet" : "secondary"} pendingLabel="Saving…">{approved ? "Revoke approval" : "Approve"}</SubmitButton>
@@ -47,7 +48,7 @@ export function HostDecisionForm({ hostId, approved }: { hostId: string; approve
 }
 
 export function RequestScanForm({ institutionId }: { institutionId: string }) {
-  const [state, action] = useActionState(requestScanAction.bind(null, institutionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(requestScanAction, institutionId), undefined as FormState);
   return (
     <form action={action} className="flex flex-col gap-3" noValidate>
       <FormMessage state={state} />
@@ -77,7 +78,7 @@ export function RunQueuedForm() {
 }
 
 export function CancelScanForm({ jobId }: { jobId: string }) {
-  const [state, action] = useActionState(cancelScanAction.bind(null, jobId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(cancelScanAction, jobId), undefined as FormState);
   return (
     <form action={action} className="flex flex-wrap items-center gap-2">
       <SubmitButton variant="danger" pendingLabel="Cancelling…">Cancel scan</SubmitButton>
@@ -87,7 +88,7 @@ export function CancelScanForm({ jobId }: { jobId: string }) {
 }
 
 export function AcceptAllForm({ institutionId, count }: { institutionId: string; count: number }) {
-  const [state, action] = useActionState(acceptAllAction.bind(null, institutionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(acceptAllAction, institutionId), undefined as FormState);
   return (
     <form action={action} className="flex flex-col gap-2">
       <FormMessage state={state} />
@@ -105,9 +106,9 @@ export function ProposalActions({ proposalId, institutionId, fieldKey, kind, pro
   proposalId: string; institutionId: string; fieldKey: string; kind: "money" | "count" | "profile";
   proposed: Proposed; candidateState: "published" | "uncertain" | null;
 }) {
-  const [acceptState, accept] = useActionState(acceptProposalAction.bind(null, proposalId, institutionId, fieldKey), undefined as FormState);
-  const [editState, acceptEdited] = useActionState(acceptProposalAction.bind(null, proposalId, institutionId, fieldKey), undefined as FormState);
-  const [rejectState, reject] = useActionState(rejectProposalAction.bind(null, proposalId), undefined as FormState);
+  const [acceptState, accept] = useActionState(boundAction(acceptProposalAction, proposalId, institutionId, fieldKey), undefined as FormState);
+  const [editState, acceptEdited] = useActionState(boundAction(acceptProposalAction, proposalId, institutionId, fieldKey), undefined as FormState);
+  const [rejectState, reject] = useActionState(boundAction(rejectProposalAction, proposalId), undefined as FormState);
   const [mode, setMode] = useState<"none" | "edit" | "reject">("none");
   const id = proposalId.slice(0, 8);
   return (

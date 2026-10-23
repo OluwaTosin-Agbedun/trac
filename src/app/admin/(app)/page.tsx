@@ -51,6 +51,7 @@ async function DashboardBody() {
   const researchWaiting = research.counts.pendingProposals + (viewer.role === "admin" ? research.pendingHosts.length : 0);
 
   const quick = [
+    { href: "/admin/report", label: "Update the compliance report", show: true },
     { href: "/admin/institutions#add-institution", label: "Add an institution", show: true },
     { href: "/admin/review", label: `Review submissions${d.awaitingReview?.total ? ` (${d.awaitingReview.total})` : ""}`, show: reviewer },
     { href: "/admin/imports", label: "Upload tracker data", show: viewer.role === "admin" },

@@ -77,10 +77,11 @@ for `nut_app` instead.
    every administrator is later removed. Without `SETUP_TOKEN` set, setup refuses to run.
 3. Invite team members from **Team and settings**. The invite link is shown once and expires in
    7 days. Email delivery is not configured yet.
-4. In **Imports**, upload the tracker spreadsheet (Excel .xlsx, CSV or tab-separated; federal rows
-   only are kept). Review the held rows and any rows that match an existing institution, then
-   **Commit safe rows** to create private drafts. Press **Show this spreadsheet on the public site** to
-   publish the report table on the Institutions page. Or, from your computer, run
+4. In **Imports**, upload the tracker spreadsheet (Excel .xlsx, CSV or tab-separated). Review the
+   held rows and any rows that match an existing institution, then **Commit safe rows** to create
+   private drafts. Press **Add these institutions to the register**: each institution becomes a record
+   to verify in **Compliance report**, and the public site shows "Verification in progress" until a
+   second reviewer verifies it. Existing records are never overwritten. Or, from your computer, run
    `MIGRATION_DATABASE_URL="<direct owner URL>" npm run import:tracker -- "<file.xlsx>"`.
 5. If someone is locked out after too many wrong passwords, an administrator clears it on
    **Team and settings**. If the only administrator is locked out, wait 15 minutes, or run as the

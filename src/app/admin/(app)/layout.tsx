@@ -8,6 +8,7 @@ import { CmsNavLinks, type CmsNavItem } from "./CmsNavLinks";
 
 const NAV: CmsNavItem[] = [
   { href: "/admin", label: "Dashboard", roles: ["editor", "reviewer", "admin"] },
+  { href: "/admin/report", label: "Compliance report", roles: ["editor", "reviewer", "admin"] },
   { href: "/admin/institutions", label: "Institutions", roles: ["editor", "reviewer", "admin"] },
   { href: "/admin/review", label: "Review queue", roles: ["editor", "reviewer", "admin"] },
   { href: "/admin/imports", label: "Imports", roles: ["reviewer", "admin"] },

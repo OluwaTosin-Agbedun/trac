@@ -3,6 +3,7 @@ import { useActionState } from "react";
 import { Field, FormMessage, describedBy, inputClass, type FormState } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { acceptInviteAction, setupAction, signInAction } from "../auth-actions";
+import { boundAction } from "@/lib/boundAction";
 
 export function SignInForm() {
   const [state, action] = useActionState(signInAction, undefined as FormState);
@@ -54,7 +55,7 @@ export function SetupForm({ needsToken }: { needsToken: boolean }) {
 }
 
 export function InviteForm({ token, email }: { token: string; email: string }) {
-  const [state, action] = useActionState(acceptInviteAction.bind(null, token), undefined as FormState);
+  const [state, action] = useActionState(boundAction(acceptInviteAction, token), undefined as FormState);
   const e = state?.errors ?? {};
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>

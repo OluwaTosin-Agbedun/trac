@@ -10,6 +10,7 @@ import type { EditorProfile } from "@/server/data/cms/editor";
 import { saveProfileAction } from "../actions";
 import { ActionMessage } from "./ActionMessage";
 import { toDateInput } from "@/lib/editorRules";
+import { boundAction } from "@/lib/boundAction";
 
 type Key = keyof EditorProfile;
 
@@ -23,7 +24,7 @@ export function ProfileForm({ revisionId, lockVersion, profile, editable, lastVe
   /** Today's date in Lagos (yyyy-mm-dd), the latest allowed verification date. */
   today: string;
 }) {
-  const [state, action] = useActionState(saveProfileAction.bind(null, revisionId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(saveProfileAction, revisionId), undefined as FormState);
   const e = state?.errors ?? {};
   const v = (k: Key) => state?.values?.[k] ?? profile[k] ?? "";
   const recordedState = profile.state?.trim() || "";

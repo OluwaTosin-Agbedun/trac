@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { connection } from "next/server";
-import { getComplianceReport, type ComplianceReport } from "@/server/data/public";
+import { getRegister, type PublicRegister } from "@/server/data/public";
+import { RECORD_LABELS, scoreRecord } from "@/lib/register";
 import { formatCalendarDate } from "@/lib/format";
 import { REPORT_SECTIONS } from "@/lib/report";
 
@@ -30,30 +31,22 @@ export default function OverviewPage() {
   return (
     <>
       {/* Hero */}
-      <section aria-labelledby="hero-h" className="relative overflow-hidden bg-band text-white">
-        <svg aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.07]">
-          <defs>
-            <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-              <path d="M48 0H0V48" fill="none" stroke="#ffffff" strokeWidth="1" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-        <div className={`${CONTAINER} relative grid items-center gap-10 pb-16 pt-14 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-14 lg:pt-16`}>
+      <section aria-labelledby="hero-h" className="border-b border-rule bg-white text-ink">
+        <div className={`${CONTAINER} grid items-center gap-10 pb-16 pt-14 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-14 lg:pt-16`}>
           <div className="flex flex-col gap-5">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#e8b021]">Financial Transparency Compliance Report</p>
-            <h1 id="hero-h" className="font-serif text-[36px] font-semibold leading-[1.1] tracking-[-0.015em] sm:text-[48px]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-accent">Financial Transparency Compliance Report</p>
+            <h1 id="hero-h" className="font-serif text-[36px] font-semibold leading-[1.1] tracking-[-0.015em] text-ink-strong sm:text-[48px]">
               Nigerian Institution Compliance Monitoring Portal
             </h1>
             <span aria-hidden="true" className="block h-1 w-20 rounded bg-[#e8b021]" />
-            <p className="max-w-[62ch] text-[17px] leading-relaxed text-[#dbe4f3]">{DIRECTIVE_TEXT}</p>
+            <p className="max-w-[62ch] text-[17px] leading-relaxed text-muted">{DIRECTIVE_TEXT}</p>
             <div className="mt-2 flex flex-wrap gap-3">
-              <Link href="/institutions" className="inline-flex min-h-12 items-center rounded bg-white px-6 text-[15px] font-semibold text-band! no-underline hover:bg-[#e8eef8]">
+              <Link href="/institutions" className="inline-flex min-h-12 items-center rounded bg-accent px-6 text-[15px] font-semibold text-white! no-underline hover:bg-accent-hover">
                 View the report
               </Link>
             </div>
           </div>
-          <div className="rounded-lg bg-white p-6 text-ink shadow-[0_18px_40px_-20px_rgba(0,0,0,0.5)] sm:p-7">
+          <div className="rounded-lg border border-rule bg-white p-6 text-ink shadow-[0_12px_30px_-22px_rgba(15,34,64,0.35)] sm:p-7">
             <h2 className="font-serif text-xl font-semibold text-ink-strong">Institutions must publish</h2>
             <ul className="mt-4 flex flex-col divide-y divide-rule-soft">
               {MUST_PUBLISH.map((m) => (
@@ -76,7 +69,7 @@ export default function OverviewPage() {
       {/* Report categories */}
       <section aria-labelledby="report-h" className={`${CONTAINER} mt-16`}>
         <SectionHeading id="report-h" eyebrow="The report" title="Nigerian Tertiary Institutions Financial Transparency Compliance Report"
-          intro="Federal universities, polytechnics and monotechnics. Choose a category to see each institution and the status of each indicator." />
+          intro="Federal and state universities, polytechnics and monotechnics. Choose a category to see each institution and the status of each indicator." />
         <Suspense fallback={<p className="mt-6 text-sm text-muted">Loading categories…</p>}>
           <Categories />
         </Suspense>
@@ -98,7 +91,7 @@ export default function OverviewPage() {
       <section aria-labelledby="cta-h" className={`${CONTAINER} mt-16`}>
         <div className="grid gap-6 rounded-lg border border-rule bg-white p-8 md:grid-cols-[1.4fr_1fr] md:items-center">
           <div>
-            <h2 id="cta-h" className="font-serif text-2xl font-semibold text-ink-strong">See every federal institution</h2>
+            <h2 id="cta-h" className="font-serif text-2xl font-semibold text-ink-strong">See every institution</h2>
             <p className="mt-2 text-[15px] text-muted">
               Open the report to see each institution&apos;s official website and the status of all nine indicators, or compare
               institutions side by side.
@@ -134,10 +127,10 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
-async function loadReport(): Promise<ComplianceReport | null> {
+async function loadReport(): Promise<PublicRegister | null> {
   await connection();
   try {
-    return await getComplianceReport();
+    return await getRegister();
   } catch (err) {
     console.error("[overview] could not load the report:", err instanceof Error ? err.message : err);
     return null;
@@ -146,27 +139,47 @@ async function loadReport(): Promise<ComplianceReport | null> {
 
 async function Categories() {
   const report = await loadReport();
-  const count = (k: string) => report?.rows.filter((r) => r.section === k).length ?? 0;
+  const rows = report?.rows ?? [];
+  const verified = rows.filter((r) => r.verified);
+  // Same rule as each institution's record (see How we score).
+  const byLabel = RECORD_LABELS.map((l) => ({ ...l, n: verified.filter((r) => scoreRecord(r.verified!.assessments).label === l.value).length }));
+  const count = (k: string) => rows.filter((r) => r.section === k).length;
+  const countVerified = (k: string) => verified.filter((r) => r.section === k).length;
   return (
     <>
+      <div className="mt-6 grid gap-px overflow-hidden rounded-lg border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex flex-col gap-1 bg-white p-5">
+          <span className="font-serif text-3xl font-semibold text-ink-strong">{verified.length}</span>
+          <span className="text-sm text-muted">of {rows.length} institutions verified so far</span>
+        </div>
+        {byLabel.filter((l) => l.value !== "no_applicable").map((l) => (
+          <div key={l.value} className="flex flex-col gap-1 bg-white p-5">
+            <span className="font-serif text-3xl font-semibold text-ink-strong">{l.n}</span>
+            <span className="text-sm text-muted">{l.label.toLowerCase()}</span>
+          </div>
+        )).slice(0, 3)}
+      </div>
+      <p className="mt-2 text-[13px] text-muted">
+        Figures count verified records only, calculated with the published rule. <Link href="/methodology">How we score</Link>.
+        {report?.reportedAsOf ? ` Report as at ${formatCalendarDate(report.reportedAsOf)}.` : ""}
+      </p>
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {REPORT_SECTIONS.map((sec) => (
           <li key={sec.key}>
             <Link href={`/institutions?section=${sec.key}`}
               className="group flex h-full items-center justify-between gap-4 rounded-lg border border-rule bg-white p-5 no-underline transition-colors hover:border-accent">
               <span>
-                <span className="block text-[12px] font-semibold uppercase tracking-[0.1em] text-subtle">Federal</span>
+                <span className="block text-[12px] font-semibold uppercase tracking-[0.1em] text-subtle">{sec.ownership}</span>
                 <span className="mt-1 block font-serif text-xl font-semibold text-ink-strong group-hover:text-accent">{sec.label}</span>
               </span>
               <span className="flex flex-col items-end">
                 <span className="font-serif text-3xl font-semibold text-accent">{count(sec.key)}</span>
-                <span className="text-[12px] text-muted">institutions</span>
+                <span className="text-[12px] text-muted">{countVerified(sec.key)} verified</span>
               </span>
             </Link>
           </li>
         ))}
       </ul>
-      {report?.reportedAsOf ? <p className="mt-3 text-[13px] text-muted">Report as at {formatCalendarDate(report.reportedAsOf)}.</p> : null}
     </>
   );
 }

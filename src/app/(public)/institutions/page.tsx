@@ -1,24 +1,25 @@
-// The public compliance report: every federal institution in the tracker spreadsheet an
-// administrator chose to show, with the status recorded for each of the nine indicators.
+// The public report: every institution in the register. Only records a second person has verified
+// show their statuses, score and links; the rest show "Verification in progress".
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { getComplianceReport, type ReportRow } from "@/server/data/public";
-import { REPORT_SECTIONS, type ReportSection } from "@/lib/report";
+import { getRegister, type RegisterRow } from "@/server/data/public";
 import { INDICATORS } from "@/lib/indicators";
+import { REPORT_SECTIONS, type ReportSection } from "@/lib/report";
+import { ASSESSMENT_STATUSES, formatPoints, recordLabel, scoreRecord } from "@/lib/register";
 import { formatCalendarDate, formatCount } from "@/lib/format";
 import { Field, inputClass } from "@/components/ui/Form";
+import { StatusIcon } from "@/components/register/StatusIcon";
 
 export const metadata: Metadata = {
   title: "Institutions",
   description:
-    "Federal universities, polytechnics and monotechnics, and whether each publishes its budget, research grants, TETFund allocation, endowment fund and student population on its official website.",
+    "Federal and state universities, polytechnics and monotechnics, and whether each publishes its budget, research grants, TETFund allocation, endowment fund and student population on its official website, with the evidence for every finding.",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-/** What each indicator column means, in the order of the report. */
 const INDICATOR_HELP: Record<string, string> = {
   budget_personnel: "Annual budgetary allocation for personnel costs (salaries and staff costs).",
   budget_overhead: "Annual budgetary allocation for overhead (running) costs.",
@@ -32,57 +33,25 @@ const INDICATOR_HELP: Record<string, string> = {
 };
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
+const host = (u: string) => u.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
 export default function InstitutionsPage(props: { searchParams: SearchParams }) {
   return (
     <div className="mx-auto flex max-w-[1240px] flex-col gap-6 px-4 py-10 sm:px-6 sm:py-12">
       <header className="flex max-w-3xl flex-col gap-3">
         <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-accent">Financial Transparency Compliance Report</p>
-        <h1 className="font-serif text-4xl font-semibold leading-tight tracking-[-0.015em] text-ink-strong">Federal institutions</h1>
+        <h1 className="font-serif text-4xl font-semibold leading-tight tracking-[-0.015em] text-ink-strong">Institutions</h1>
         <p className="text-base leading-relaxed text-[#2b3442]">
-          Whether each federal university, polytechnic and monotechnic publishes the information the directive requires on its
-          official website. Each column is one of the nine indicators explained in the key below.
+          Whether each federal and state university, polytechnic and monotechnic publishes the information the directive
+          requires on its official website. Every finding links to its evidence, with the reporting year and the date it was
+          checked, and every record is verified by a second reviewer before it appears here.{" "}
+          <Link href="/methodology">How we score</Link>.
         </p>
       </header>
       <Suspense fallback={<p role="status" className="text-sm text-muted">Loading the report…</p>}>
         <ReportBody searchParams={props.searchParams} />
       </Suspense>
     </div>
-  );
-}
-
-function statusTone(raw: string | null): { text: string; className: string } {
-  const s = (raw ?? "").toUpperCase().replace(/\s+/g, " ").trim();
-  if (!s) return { text: "Not recorded", className: "border-rule bg-surface text-muted" };
-  if (s.startsWith("YES")) return { text: "Updated", className: "border-[#b7dcc5] bg-ok-bg text-ok" };
-  if (s.startsWith("PARTIAL")) return { text: "Partially updated", className: "border-warn-rule bg-warn-bg text-warn-text" };
-  if (s.includes("NOT YET")) return { text: "Not yet updated", className: "border-[#e8b4b4] bg-danger-bg text-danger" };
-  if (s.startsWith("NO")) return { text: "Not updated", className: "border-[#e8b4b4] bg-danger-bg text-danger" };
-  return { text: raw!.trim(), className: "border-rule bg-surface text-ink" };
-}
-
-function Mark({ value, label }: { value: boolean | null | undefined; label: string }) {
-  if (value === true) {
-    return (
-      <span title={`${label}: published`} className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ok-bg text-ok">
-        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        <span className="sr-only">{label}: published</span>
-      </span>
-    );
-  }
-  if (value === false) {
-    return (
-      <span title={`${label}: not published`} className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-danger-bg text-danger">
-        <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>
-        <span className="sr-only">{label}: not published</span>
-      </span>
-    );
-  }
-  return (
-    <span title={`${label}: not recorded`} className="inline-flex h-6 w-6 items-center justify-center text-subtle">
-      <span aria-hidden="true">–</span>
-      <span className="sr-only">{label}: not recorded</span>
-    </span>
   );
 }
 
@@ -96,7 +65,7 @@ function IndicatorKey() {
   return (
     <section aria-labelledby="key-h" className="rounded-md border border-rule bg-white p-5">
       <h2 id="key-h" className="font-serif text-xl font-semibold text-ink-strong">Key</h2>
-      <p className="mt-1 text-sm text-muted">The nine indicators every federal institution is expected to publish on its official website.</p>
+      <p className="mt-1 text-sm text-muted">The nine indicators every institution is expected to publish on its official website.</p>
       <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {groups.map((g) => (
           <div key={g.group} className="rounded border border-rule-soft bg-surface p-3">
@@ -112,75 +81,76 @@ function IndicatorKey() {
           </div>
         ))}
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-rule-soft pt-3 text-[13px] text-ink">
-        <span className="inline-flex items-center gap-2"><Mark value={true} label="Example" /> Published on the official website</span>
-        <span className="inline-flex items-center gap-2"><Mark value={false} label="Example" /> Not published</span>
-        <span className="inline-flex items-center gap-2"><Mark value={null} label="Example" /> Not recorded in the report</span>
-      </div>
+      <dl className="mt-4 grid gap-x-6 gap-y-2 border-t border-rule-soft pt-3 text-[13px] text-ink sm:grid-cols-2 lg:grid-cols-4">
+        {ASSESSMENT_STATUSES.map((s) => (
+          <div key={s.value} className="flex items-start gap-2">
+            <dt className="shrink-0"><StatusIcon status={s.value} /></dt>
+            <dd><span className="font-semibold">{s.label}.</span> <span className="text-muted">{s.meaning}</span></dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }
 
-function ReportTable({ rows, head }: { rows: ReportRow[]; head: string }) {
+function ReportTable({ rows, head }: { rows: RegisterRow[]; head: string }) {
   return (
     <div className="overflow-x-auto rounded-md border border-rule bg-white">
-      <table className="w-full min-w-[1180px] border-collapse text-sm">
-        <caption className="sr-only">Federal institutions and the status recorded for each of the nine indicators</caption>
+      <table className="w-full min-w-[1120px] border-collapse text-sm">
+        <caption className="sr-only">Institutions, their verified disclosure status for each of the nine indicators, and links to the evidence</caption>
         <thead>
           <tr className="bg-band text-left text-[12px] uppercase tracking-[0.04em] text-white">
-            <th scope="col" rowSpan={2} className="px-3 py-2.5 align-bottom">S/N</th>
-            <th scope="col" rowSpan={2} className="px-3 py-2.5 align-bottom">Institution</th>
-            <th scope="col" rowSpan={2} className="px-3 py-2.5 align-bottom">State</th>
-            <th scope="col" rowSpan={2} className="px-3 py-2.5 align-bottom">Official website</th>
-            <th scope="col" rowSpan={2} className="px-3 py-2.5 align-bottom">Financial report</th>
-            <th scope="colgroup" colSpan={3} className="border-l border-white/20 px-2 py-2 text-center">Budget</th>
-            <th scope="colgroup" colSpan={2} className="border-l border-white/20 px-2 py-2 text-center">Research grants</th>
-            <th scope="col" rowSpan={2} className="border-l border-white/20 px-2 py-2 text-center align-bottom"><abbr title="TETFund allocation" className="no-underline">TETFund</abbr></th>
-            <th scope="col" rowSpan={2} className="border-l border-white/20 px-2 py-2 text-center align-bottom"><abbr title="Endowment fund" className="no-underline">Endow.</abbr></th>
-            <th scope="colgroup" colSpan={2} className="border-l border-white/20 px-2 py-2 text-center">Students</th>
-          </tr>
-          <tr className="bg-band text-[12px] text-white">
-            {["budget_personnel", "budget_overhead", "budget_capital", "grants_domestic", "grants_international"].map((k, i) => {
-              const def = INDICATORS.find((d) => d.key === k)!;
-              return <th key={k} scope="col" className={`px-2 pb-2 text-center font-semibold ${i === 0 || i === 3 ? "border-l border-white/20" : ""}`}><abbr title={def.label} className="no-underline">{def.short}</abbr></th>;
-            })}
-            {["students_undergraduate", "students_postgraduate"].map((k, i) => {
-              const def = INDICATORS.find((d) => d.key === k)!;
-              return <th key={k} scope="col" className={`px-2 pb-2 text-center font-semibold ${i === 0 ? "border-l border-white/20" : ""}`}><abbr title={def.label} className="no-underline">{def.short}</abbr></th>;
-            })}
+            <th scope="col" className="px-3 py-2.5">Institution</th>
+            <th scope="col" className="px-3 py-2.5">Evidence</th>
+            <th scope="col" className="px-3 py-2.5">Result</th>
+            {INDICATORS.map((d) => (
+              <th key={d.key} scope="col" className="px-1.5 py-2.5 text-center"><abbr title={d.label} className="no-underline">{d.short}</abbr></th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, n) => {
-            const status = statusTone(r.reportStatus);
+          {rows.map((r) => {
+            const v = r.verified;
+            const score = v ? scoreRecord(v.assessments) : null;
+            const label = score ? recordLabel(score.label) : null;
             return (
-              <tr key={`${r.section}-${r.position}`} className="border-t border-rule-soft align-top odd:bg-white even:bg-surface/50">
-                <td className="px-3 py-3 tabular-nums text-muted">{/^\d+$/.test(r.serial) ? r.serial : n + 1}</td>
+              <tr key={r.id} className="border-t border-rule-soft align-top">
                 <th scope="row" className="max-w-[300px] px-3 py-3 text-left font-normal">
-                  {r.institutionSlug ? (
-                    <Link href={`/institutions/${encodeURIComponent(r.institutionSlug)}`} className="font-semibold">{r.name}</Link>
-                  ) : (
-                    <span className="font-semibold text-ink-strong">{r.name}</span>
-                  )}
-                  {r.head ? <span className="mt-1 block text-[12px] text-muted">{head}: {r.head}</span> : null}
-                  {r.bursar ? <span className="block text-[12px] text-muted">Bursar: {r.bursar}</span> : null}
+                  {v ? <Link href={`/institutions/record/${r.id}`} className="font-semibold">{r.name}</Link> : <span className="font-semibold text-ink-strong">{r.name}</span>}
+                  <span className="block text-[12px] text-muted">{r.state ?? "State not recorded"}</span>
+                  {v?.head_name ? <span className="block text-[12px] text-muted">{head}: {v.head_name}</span> : null}
                 </th>
-                <td className="px-3 py-3">{r.state ?? "—"}</td>
-                <td className="max-w-[220px] px-3 py-3">
-                  {r.websiteUrl ? (
-                    <a href={r.websiteUrl} target="_blank" rel="noopener noreferrer nofollow" className="break-all text-[13px]">
-                      {r.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-                    </a>
-                  ) : r.websiteText ? <span className="break-words text-[13px] text-muted">{r.websiteText}</span> : <span className="text-muted">—</span>}
-                </td>
-                <td className="px-3 py-3">
-                  <span className={`inline-flex whitespace-nowrap rounded border px-2 py-0.5 text-[12px] font-semibold ${status.className}`}>{status.text}</span>
-                </td>
-                {INDICATORS.map((d, i) => (
-                  <td key={d.key} className={`px-2 py-3 text-center ${[0, 3, 5, 6, 7].includes(i) ? "border-l border-rule-soft" : ""}`}>
-                    <Mark value={r.indicators[d.key]} label={d.label} />
+                {v && score && label ? (
+                  <>
+                    <td className="max-w-[220px] px-3 py-3 text-[13px]">
+                      {v.disclosure_url ? (
+                        <a href={v.disclosure_url} target="_blank" rel="noopener noreferrer nofollow" className="font-semibold">View disclosure evidence</a>
+                      ) : <span className="text-muted">No disclosure page</span>}
+                      {v.homepage_url ? (
+                        <a href={v.homepage_url} target="_blank" rel="noopener noreferrer nofollow" className="block break-all text-[12px] text-muted">{host(v.homepage_url)}</a>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex whitespace-nowrap rounded border px-2 py-0.5 text-[12px] font-semibold ${label.className}`}>{label.label}</span>
+                      {score.label !== "incomplete" && score.available > 0 ? (
+                        <span className="mt-1 block text-[12px] text-muted">{formatPoints(score.points)} of {score.available} points</span>
+                      ) : null}
+                    </td>
+                    {INDICATORS.map((d) => {
+                      const a = v.assessments[d.key];
+                      return (
+                        <td key={d.key} className="px-1.5 py-3 text-center">
+                          <StatusIcon status={a?.status} label={`${d.label}${a?.year ? ` (${a.year})` : ""}`} />
+                        </td>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <td colSpan={2 + INDICATORS.length} className="px-3 py-3">
+                    <span className="inline-flex rounded border border-rule bg-surface px-2 py-0.5 text-[12px] font-semibold text-muted">Verification in progress</span>
+                    <span className="ml-2 text-[12px] text-muted">Shown once the research team has checked the evidence and a second reviewer has verified it.</span>
                   </td>
-                ))}
+                )}
               </tr>
             );
           })}
@@ -193,52 +163,66 @@ function ReportTable({ rows, head }: { rows: ReportRow[]; head: string }) {
 async function ReportBody({ searchParams }: { searchParams: SearchParams }) {
   await connection();
   const sp = await searchParams;
-  const report = await getComplianceReport();
+  let register;
+  try {
+    register = await getRegister();
+  } catch (err) {
+    console.error("[report] could not load the register:", err instanceof Error ? err.message : err);
+    return (
+      <section className="rounded-md border border-rule bg-surface px-6 py-10 text-center">
+        <h2 className="font-serif text-xl font-semibold text-ink-strong">The report is not available just now</h2>
+        <p className="mx-auto mt-2 max-w-xl text-[15px] text-muted">Please try again in a few minutes.</p>
+      </section>
+    );
+  }
   const active = REPORT_SECTIONS.find((s) => s.key === one(sp.section)) ?? REPORT_SECTIONS[0];
   const q = one(sp.q).slice(0, 100).toLowerCase();
   const state = one(sp.state).slice(0, 60);
-  const inSection = report.rows.filter((r) => r.section === active.key);
+  const onlyVerified = one(sp.verified) === "1";
+  const inSection = register.rows.filter((r) => r.section === active.key);
   const states = [...new Set(inSection.map((r) => r.state).filter((s): s is string => Boolean(s)))].sort((a, b) => a.localeCompare(b));
-  const rows = inSection.filter((r) =>
-    (!q || [r.name, r.state, r.head, r.bursar].some((v) => v?.toLowerCase().includes(q))) && (!state || r.state === state));
-  const count = (k: ReportSection) => report.rows.filter((r) => r.section === k).length;
+  const rows = inSection.filter((r) => (!q || [r.name, r.state].some((v) => v?.toLowerCase().includes(q)))
+    && (!state || r.state === state) && (!onlyVerified || r.verified));
+  const count = (k: ReportSection) => register.rows.filter((r) => r.section === k).length;
+  const verifiedHere = inSection.filter((r) => r.verified).length;
   const tabHref = (k: ReportSection) => `/institutions?section=${k}`;
 
-  if (!report.rows.length) {
+  if (!register.rows.length) {
     return (
       <section className="rounded-md border border-rule bg-surface px-6 py-10 text-center">
         <h2 className="font-serif text-xl font-semibold text-ink-strong">The report has not been published yet</h2>
-        <p className="mx-auto mt-2 max-w-xl text-[15px] text-muted">
-          The compliance report appears here once the team uploads the tracker spreadsheet and publishes it.
-        </p>
+        <p className="mx-auto mt-2 max-w-xl text-[15px] text-muted">The report appears here once the research team has verified the first institutions.</p>
       </section>
     );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {report.reportedAsOf ? (
-        <p className="text-sm text-muted">Report as at <strong className="text-ink">{formatCalendarDate(report.reportedAsOf)}</strong>.</p>
-      ) : null}
+      {register.reportedAsOf ? <p className="text-sm text-muted">Report as at <strong className="text-ink">{formatCalendarDate(register.reportedAsOf)}</strong>.</p> : null}
 
-      <nav aria-label="Category" className="flex flex-wrap gap-2">
-        {REPORT_SECTIONS.map((s) => (
-          <Link key={s.key} href={tabHref(s.key)} aria-current={s.key === active.key ? "page" : undefined}
-            className={`inline-flex min-h-11 items-center gap-2 rounded border px-4 text-[15px] font-semibold no-underline ${s.key === active.key ? "border-band bg-band text-white!" : "border-rule bg-white text-ink hover:border-accent hover:text-accent"}`}>
-            {s.label}
-            <span className={`rounded-full px-2 text-[12px] ${s.key === active.key ? "bg-white/20" : "bg-surface-2 text-muted"}`}>{count(s.key)}</span>
-          </Link>
+      <nav aria-label="Category" className="flex flex-col gap-3">
+        {(["Federal", "State"] as const).map((group) => (
+          <div key={group} className="flex flex-wrap items-center gap-2">
+            <span className="w-16 text-[12px] font-semibold uppercase tracking-[0.1em] text-subtle">{group}</span>
+            {REPORT_SECTIONS.filter((s) => s.ownership === group).map((s) => (
+              <Link key={s.key} href={tabHref(s.key)} aria-current={s.key === active.key ? "page" : undefined}
+                className={`inline-flex min-h-11 items-center gap-2 rounded border px-4 text-[15px] font-semibold no-underline ${s.key === active.key ? "border-band bg-band text-white!" : "border-rule bg-white text-ink hover:border-accent hover:text-accent"}`}>
+                {s.label.replace(/^(Federal|State) /, "").replace(/^./, (c) => c.toUpperCase())}
+                <span className={`rounded-full px-2 text-[12px] ${s.key === active.key ? "bg-white/20" : "bg-surface-2 text-muted"}`}>{count(s.key)}</span>
+              </Link>
+            ))}
+          </div>
         ))}
       </nav>
 
       <form action="/institutions" method="get" role="search" className="flex flex-wrap items-end gap-4">
         <input type="hidden" name="section" value={active.key} />
-        <div className="min-w-0 flex-[2_1_280px]">
+        <div className="min-w-0 flex-[2_1_260px]">
           <Field id="r-q" label="Search">
-            <input id="r-q" name="q" type="search" defaultValue={one(sp.q)} maxLength={100} placeholder="Institution, head or bursar" className={inputClass()} />
+            <input id="r-q" name="q" type="search" defaultValue={one(sp.q)} maxLength={100} placeholder="Institution or state" className={inputClass()} />
           </Field>
         </div>
-        <div className="min-w-0 flex-[1_1_200px]">
+        <div className="min-w-0 flex-[1_1_180px]">
           <Field id="r-state" label="State">
             <select id="r-state" name="state" defaultValue={state} className={inputClass()}>
               <option value="">All states</option>
@@ -246,25 +230,24 @@ async function ReportBody({ searchParams }: { searchParams: SearchParams }) {
             </select>
           </Field>
         </div>
+        <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-ink">
+          <input type="checkbox" name="verified" value="1" defaultChecked={onlyVerified} className="h-4 w-4" /> Verified only
+        </label>
         <div className="flex items-center gap-4">
           <button type="submit" className="inline-flex min-h-11 items-center rounded bg-accent px-5 text-[15px] font-semibold text-white hover:bg-accent-hover">Search</button>
-          {q || state ? <Link href={tabHref(active.key)} className="text-sm font-semibold underline underline-offset-2">Clear</Link> : null}
+          {q || state || onlyVerified ? <Link href={tabHref(active.key)} className="text-sm font-semibold underline underline-offset-2">Clear</Link> : null}
         </div>
       </form>
 
       <IndicatorKey />
 
       <p aria-live="polite" className="text-sm text-muted">
-        {rows.length === inSection.length
-          ? `${formatCount(rows.length)} ${active.label.toLowerCase()}`
-          : `${formatCount(rows.length)} of ${formatCount(inSection.length)} ${active.label.toLowerCase()}`}
+        {formatCount(rows.length)} of {formatCount(inSection.length)} {active.label.toLowerCase()} shown · {formatCount(verifiedHere)} verified so far
       </p>
 
-      {rows.length ? (
-        <ReportTable rows={rows} head={active.head} />
-      ) : (
+      {rows.length ? <ReportTable rows={rows} head={active.head} /> : (
         <p className="rounded-md border border-rule bg-surface px-6 py-8 text-center text-[15px] text-muted">
-          No {active.label.toLowerCase()} match that search. <Link href={tabHref(active.key)} className="underline underline-offset-2">Clear the search</Link>.
+          No {active.label.toLowerCase()} match. <Link href={tabHref(active.key)} className="underline underline-offset-2">Clear the search</Link>.
         </p>
       )}
     </div>

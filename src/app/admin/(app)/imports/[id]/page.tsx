@@ -120,8 +120,8 @@ async function ImportBody({ params, searchParams }: Props) {
             <h3 className="text-base font-semibold text-ink-strong">Public compliance report</h3>
             <p className="text-sm text-muted">
               {shownSince
-                ? `This spreadsheet is the report on the public site (since ${formatDateTime(shownSince)}). Visitors see each federal institution with the status recorded for each indicator.`
-                : "Shows this spreadsheet's federal institutions on the public Institutions page, with the status recorded for each indicator. It replaces any report shown before. Drafts and notes stay private."}
+                ? `This spreadsheet's institutions were added to the register (${formatDateTime(shownSince)}). Each is a record to verify in Compliance report; the public site shows “Verification in progress” until a second reviewer verifies it.`
+                : "Adds this spreadsheet's institutions to the register as records to verify. Institutions already in the register are not changed. The spreadsheet's Yes/No ticks are kept only as private hints for editors; nothing becomes public until a second reviewer verifies the record."}
             </p>
             {isAdmin ? <ReportForm importId={d.id} shown={Boolean(shownSince)} /> : null}
           </div>

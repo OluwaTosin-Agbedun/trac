@@ -7,7 +7,7 @@ import { asUser } from "@/server/db";
 import { viewerForAction } from "@/server/auth/session";
 import { isUuid } from "@/server/auth/crypto";
 import { dbErrorMessage, fail, field, ok } from "@/server/actions/result";
-import { federalOnly, parseTrackerCsv, parseTrackerRecords, parseTrackerTsv, summarise } from "@/lib/import/trackerTsv";
+import { parseTrackerCsv, parseTrackerRecords, parseTrackerTsv, summarise } from "@/lib/import/trackerTsv";
 import { readTrackerWorkbook, WorkbookError } from "@/lib/import/trackerXlsx";
 import type { FormState } from "@/components/ui/Form";
 
@@ -48,10 +48,7 @@ export async function stageImportAction(_prev: FormState, fd: FormData): Promise
     if (err instanceof WorkbookError) return fail(err.message, { file: [err.message] });
     return fail(`The file could not be read as a tracker export: ${err instanceof Error ? err.message.slice(0, 200) : "unknown format"}.`);
   }
-  // Federal institutions only: state sections in the file are left out.
-  const fed = federalOnly(parsed);
-  parsed = fed;
-  if (!parsed.rows.length) return fail("No federal institution rows were found in that file.");
+  if (!parsed.rows.length) return fail("No institution rows were found in that file.");
   let importId: string;
   let existed = false;
   try {
@@ -59,7 +56,7 @@ export async function stageImportAction(_prev: FormState, fd: FormData): Promise
       const before = await tx.query("select id from imports where content_hash = encode(sha256(convert_to($1, 'UTF8')), 'hex')", [text]);
       const [row] = await tx.query<{ id: string }>("select stage_import($1, $2, $3, $4, $5, $6) as id", [
         name, text, parsed.reportedAsOf, parser,
-        JSON.stringify({ ...summarise(parsed), excludedStateRows: fed.excludedStateRows, ignored: parsed.ignored }), JSON.stringify(parsed.rows),
+        JSON.stringify({ ...summarise(parsed), ignored: parsed.ignored }), JSON.stringify(parsed.rows),
       ]);
       return { id: row.id, existed: before.length > 0 };
     });
@@ -122,7 +119,7 @@ export async function showReportAction(importId: string): Promise<FormState> {
     return fail(dbErrorMessage(err));
   }
   refresh();
-  return ok("This spreadsheet is now the compliance report on the public site (federal institutions only).");
+  return ok("Added. Each new institution is a record to verify; the public site shows “Verification in progress” until a second reviewer verifies it.");
 }
 
 export async function hideReportAction(): Promise<FormState> {

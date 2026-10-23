@@ -28,6 +28,7 @@ const EXPLAINED_REFUSALS: Record<string, string> = {
   "this institution is assigned to another editor": "This institution is assigned to another editor. Ask a reviewer or administrator to reassign it if you should work on it.",
   "you cannot review a revision you submitted or edited": "You cannot review a revision you submitted or edited. Another reviewer must do it (an administrator can record an override with a reason).",
   "you cannot review your own submission": "You cannot review your own submission. Another reviewer must do it.",
+  "you edited this record, so another reviewer must verify it": "You edited this record, so another reviewer must verify it. This is the second-person check.",
 };
 
 /**

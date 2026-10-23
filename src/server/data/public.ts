@@ -3,6 +3,7 @@ import "server-only";
 // (non-withdrawn) and nothing else: drafts, imports and notes are unreachable by construction.
 import { asPublic } from "../db/index.ts";
 import type { ReportSection } from "../../lib/report.ts";
+import type { RegisterContent } from "../../lib/register.ts";
 import {
   ASSESSMENT_STATES, INDICATOR_KEYS, INSTITUTION_TYPES, OWNERSHIP, SUMMARY_LABELS,
   type AssessmentState, type IndicatorKey, type InstitutionType, type Ownership, type SummaryLabel,
@@ -206,44 +207,35 @@ export async function listAllCurrent(): Promise<PublishedSnapshot[]> {
 
 export type { ReportSection };
 
-export interface ReportRow {
+// ---------------------------------------------------------------------------
+// The verified register: what the public report shows. Only a second person's verified copy of a
+// record is public; until then a record has verified = null ("Verification in progress").
+// ---------------------------------------------------------------------------
+
+export interface RegisterRow {
+  id: string;
   section: ReportSection;
-  position: number;
-  serial: string;
   name: string;
   state: string | null;
-  head: string | null;
-  bursar: string | null;
-  websiteText: string | null;
-  websiteUrl: string | null;
-  reportStatus: string | null;
-  /** Indicator key → true (recorded as published), false (not), null (blank in the sheet). */
-  indicators: Record<string, boolean | null>;
-  institutionSlug: string | null;
+  verified: RegisterContent | null;
+  verifiedAt: string | null;
 }
 
-export interface ComplianceReport {
-  rows: ReportRow[];
+export interface PublicRegister {
+  rows: RegisterRow[];
   reportedAsOf: string | null;
-  publishedAt: string | null;
 }
 
-export async function getComplianceReport(): Promise<ComplianceReport> {
+export async function getRegister(): Promise<PublicRegister> {
   const rows = await asPublic((tx) => tx.query<{
-    section: ReportSection; section_index: number; serial: string; name: string; state: string | null; head_name: string | null;
-    bursar_name: string | null; website_text: string | null; website_url: string | null; report_status: string | null;
-    indicators: Record<string, boolean | null> | null; institution_slug: string | null; reported_as_of: Date | string | null;
-    published_at: Date | string | null;
-  }>("select * from tracker_report()"));
+    id: string; section: ReportSection; name: string; state: string | null; verified: RegisterContent | null;
+    verified_at: Date | string | null; reported_as_of: Date | string | null;
+  }>("select id, section, name, state, verified, verified_at, reported_as_of from public_register()"));
   const iso = (v: Date | string | null) => (v === null ? null : v instanceof Date ? v.toISOString() : String(v));
   return {
     rows: rows.map((r) => ({
-      section: r.section, position: r.section_index, serial: r.serial, name: r.name, state: r.state?.trim() || null,
-      head: r.head_name?.trim() || null, bursar: r.bursar_name?.trim() || null, websiteText: r.website_text?.trim() || null,
-      websiteUrl: r.website_url, reportStatus: r.report_status?.trim() || null, indicators: r.indicators ?? {},
-      institutionSlug: r.institution_slug,
+      id: r.id, section: r.section, name: r.name, state: r.state?.trim() || null, verified: r.verified, verifiedAt: iso(r.verified_at),
     })),
     reportedAsOf: iso(rows[0]?.reported_as_of ?? null)?.slice(0, 10) ?? null,
-    publishedAt: iso(rows[0]?.published_at ?? null),
   };
 }
