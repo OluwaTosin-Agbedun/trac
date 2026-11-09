@@ -122,14 +122,3 @@ export async function showReportAction(importId: string): Promise<FormState> {
   return ok("Added. Each new institution is a record to verify; the public site shows “Verification in progress” until a second reviewer verifies it.");
 }
 
-export async function hideReportAction(): Promise<FormState> {
-  const viewer = await viewerForAction(["admin"]);
-  if (!viewer) return fail(ADMIN_ONLY);
-  try {
-    await asUser(viewer.userId, (tx) => tx.query("select hide_tracker_report()"));
-  } catch (err) {
-    return fail(dbErrorMessage(err));
-  }
-  refresh();
-  return ok("The compliance report is no longer shown on the public site.");
-}

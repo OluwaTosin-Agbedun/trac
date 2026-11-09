@@ -31,6 +31,20 @@ const EXPLAINED_REFUSALS: Record<string, string> = {
   "you edited this record, so another reviewer must verify it": "You edited this record, so another reviewer must verify it. This is the second-person check.",
 };
 
+// Conflicts (stale versions) from the register functions, in words that say what to do next.
+const EXPLAINED_CONFLICTS: Record<string, string> = {
+  "conflict: someone else saved this record after you opened it":
+    "Someone else saved this record after you opened it. Reload to see their version, then reapply your change.",
+  "conflict: this record changed since you opened it; reload and check it again":
+    "This record changed since you opened it. Reload the page and check it again before verifying.",
+  "conflict: the site was updated; reload the page and save again":
+    "The site was updated since you opened this page. Reload the page, then save again.",
+  "conflict: the site was updated; reload the page and save the settings again":
+    "The site was updated since you opened this page. Reload the page, then save the settings again.",
+  "conflict: the site was updated; reload the page and remove the institution with a reason":
+    "The site was updated since you opened this page. Reload the page, then remove the institution with a reason.",
+};
+
 /**
  * Maps Postgres errors raised by our workflow functions to messages for the user. Our functions
  * raise human-readable text with known codes; anything else becomes a generic message and is
@@ -43,7 +57,7 @@ export function dbErrorMessage(err: unknown): string {
     case "42501":
       return EXPLAINED_REFUSALS[msg] ?? "You do not have permission to do that.";
     case "40001":
-      return msg.startsWith("conflict") ? capitalise(msg) + " Reload to see the latest version, then reapply your change." : "Someone else changed this record. Reload and try again.";
+      return EXPLAINED_CONFLICTS[msg] ?? (msg.startsWith("conflict") ? capitalise(msg) + " Reload to see the latest version, then reapply your change." : "Someone else changed this record. Reload and try again.");
     case "55000":
     case "23514":
     case "P0002":

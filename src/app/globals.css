@@ -63,9 +63,15 @@ body {
   }
 }
 
+/* Two-tone focus ring, visible on every ground: a white inner ring and a dark navy outline on white
+   (navy on white 14:1), a gold outline on the dark bands (white and gold on navy, both above 8:1). */
 :focus-visible {
-  outline: 3px solid #f5b400;
+  outline: 3px solid #0b2a57;
   outline-offset: 2px;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+.on-dark :focus-visible {
+  outline-color: #f5b400;
 }
 
 .skip-link {

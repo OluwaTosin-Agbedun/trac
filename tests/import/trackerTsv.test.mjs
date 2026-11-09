@@ -48,7 +48,7 @@ test("preserves the six blank indicator cells in their own column", () => {
 test("federal monotechnics take the name from the state column and have no state", () => {
   const r = find("federal_monotechnic", /^ABUTH, Zaria College of Nursing Sciences$/)[0];
   assert.equal(r.mapped.stateRaw, null);
-  assert.equal(r.mapped.head, "Dr. Alkali");
+  assert.equal(r.mapped.head, "Withheld");
   assert.equal(r.mapped.institutionType, "monotechnic");
 });
 
@@ -91,7 +91,7 @@ test("handles quoted multi-line cells and website repairs as proposals", () => {
   assert.match(unimaid.mapped.websiteRaw, /\n/);
   assert.deepEqual(unimaid.mapped.websiteCandidates, [
     "https://www.unimaid.edu.ng/tetfund-record#", "https://www.unimaid.edu.ng/budget-plan"]);
-  assert.match(find("federal_university", /Police Academy/)[0].mapped.head, /The Commandant/);
+  assert.match(find("federal_university", /Police Academy/)[0].mapped.head, /^Withheld/);
   assert.deepEqual(analyseWebsite("dsustportal.ng").candidates, ["https://dsustportal.ng"]);
   assert.ok(analyseWebsite("https://share.google/abc").issues.some((i) => i.code === "website_share_link" && i.holds));
   assert.ok(analyseWebsite("Key Institutional Data | NOUN").issues.some((i) => i.code === "website_not_url"));

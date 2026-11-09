@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { connection } from "next/server";
-import { getRegister, type PublicRegister } from "@/server/data/public";
-import { RECORD_LABELS, scoreRecord } from "@/lib/register";
-import { formatCalendarDate } from "@/lib/format";
+import { getRegister, getRegisterStatus, type PublicRegister, type RegisterStatus } from "@/server/data/public";
+import { formatCount, formatDate } from "@/lib/format";
 import { REPORT_SECTIONS } from "@/lib/report";
+import { countBySection } from "@/components/register/view";
+import { RegisterError, RegisterHidden, SCOPE_SENTENCE } from "@/components/public/Notices";
 
 export const metadata: Metadata = {
   title: "Overview",
@@ -40,6 +41,7 @@ export default function OverviewPage() {
             </h1>
             <span aria-hidden="true" className="block h-1 w-20 rounded bg-[#e8b021]" />
             <p className="max-w-[62ch] text-[17px] leading-relaxed text-muted">{DIRECTIVE_TEXT}</p>
+            <p className="max-w-[62ch] text-[15px] leading-relaxed text-muted">{SCOPE_SENTENCE}</p>
             <div className="mt-2 flex flex-wrap gap-3">
               <Link href="/institutions" className="inline-flex min-h-12 items-center rounded bg-accent px-6 text-[15px] font-semibold text-white! no-underline hover:bg-accent-hover">
                 View the report
@@ -82,7 +84,7 @@ export default function OverviewPage() {
           <ol className="mt-8 grid gap-6 md:grid-cols-3">
             <Step n={1} title="Official sources are checked">Researchers review the institution’s official website and documents for each of the nine indicators.</Step>
             <Step n={2} title="Evidence is recorded with its period">Each finding links to the exact page or document, with the reporting period it covers and the date it was checked.</Step>
-            <Step n={3} title="A reviewer approves, then it is published">A second person checks the evidence before anything appears here. Corrections become a new release; history is kept.</Step>
+            <Step n={3} title="A second reviewer verifies it">A different member of the team checks the evidence and verifies the record before it appears here. Corrections are verified again, and earlier versions are kept on the record.</Step>
           </ol>
         </div>
       </section>
@@ -127,41 +129,35 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
-async function loadReport(): Promise<PublicRegister | null> {
-  await connection();
-  try {
-    return await getRegister();
-  } catch (err) {
-    console.error("[overview] could not load the report:", err instanceof Error ? err.message : err);
-    return null;
-  }
-}
-
 async function Categories() {
-  const report = await loadReport();
-  const rows = report?.rows ?? [];
-  const verified = rows.filter((r) => r.verified);
-  // Same rule as each institution's record (see How we score).
-  const byLabel = RECORD_LABELS.map((l) => ({ ...l, n: verified.filter((r) => scoreRecord(r.verified!.assessments).label === l.value).length }));
-  const count = (k: string) => rows.filter((r) => r.section === k).length;
-  const countVerified = (k: string) => verified.filter((r) => r.section === k).length;
+  await connection();
+  let register: PublicRegister;
+  let status: RegisterStatus;
+  try {
+    [register, status] = await Promise.all([getRegister(), getRegisterStatus()]);
+  } catch (err) {
+    console.error("[overview] could not load the register:", err instanceof Error ? err.message : err);
+    return <div className="mt-6"><RegisterError compact /></div>;
+  }
+  // Never zeros in place of a hidden or empty register: say what is going on instead.
+  if (!status.visible) return <div className="mt-6"><RegisterHidden compact /></div>;
+  if (!status.listed) {
+    return (
+      <p className="mt-6 rounded-md border border-rule bg-surface px-5 py-4 text-[15px] text-muted">
+        The report appears here once the research team has loaded the institutions.
+      </p>
+    );
+  }
+  const listed = countBySection(register.rows);
+  const verified = countBySection(register.rows.filter((r) => r.verified));
   return (
     <>
-      <div className="mt-6 grid gap-px overflow-hidden rounded-lg border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex flex-col gap-1 bg-white p-5">
-          <span className="font-serif text-3xl font-semibold text-ink-strong">{verified.length}</span>
-          <span className="text-sm text-muted">of {rows.length} institutions verified so far</span>
-        </div>
-        {byLabel.filter((l) => l.value !== "no_applicable").map((l) => (
-          <div key={l.value} className="flex flex-col gap-1 bg-white p-5">
-            <span className="font-serif text-3xl font-semibold text-ink-strong">{l.n}</span>
-            <span className="text-sm text-muted">{l.label.toLowerCase()}</span>
-          </div>
-        )).slice(0, 3)}
-      </div>
-      <p className="mt-2 text-[13px] text-muted">
-        Figures count verified records only, calculated with the published rule. <Link href="/methodology">How we score</Link>.
-        {report?.reportedAsOf ? ` Report as at ${formatCalendarDate(report.reportedAsOf)}.` : ""}
+      <p className="mt-6 text-[17px] text-ink">
+        <strong className="font-semibold text-ink-strong">{formatCount(status.verified)}</strong> of {formatCount(status.listed)} institutions verified so far.
+      </p>
+      <p className="mt-1 text-[13px] text-muted">
+        {status.lastVerifiedAt ? `Last verification: ${formatDate(status.lastVerifiedAt)}. ` : ""}
+        Only verified records show findings and a score. <Link href="/methodology">How we score</Link>.
       </p>
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {REPORT_SECTIONS.map((sec) => (
@@ -173,8 +169,8 @@ async function Categories() {
                 <span className="mt-1 block font-serif text-xl font-semibold text-ink-strong group-hover:text-accent">{sec.label}</span>
               </span>
               <span className="flex flex-col items-end">
-                <span className="font-serif text-3xl font-semibold text-accent">{count(sec.key)}</span>
-                <span className="text-[12px] text-muted">{countVerified(sec.key)} verified</span>
+                <span className="font-serif text-3xl font-semibold text-accent">{listed[sec.key]}</span>
+                <span className="text-[12px] text-muted">{verified[sec.key]} verified</span>
               </span>
             </Link>
           </li>

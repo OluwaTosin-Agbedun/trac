@@ -492,9 +492,7 @@ function ReleasesCard({ d }: { d: DashboardData }) {
                   <span>on {formatDate(r.withdrawnAt)}</span>
                 </>
               ) : r.isCurrent ? (
-                <Link href={`/institutions/${r.slug}`} className="inline-flex min-h-11 items-center underline underline-offset-2">
-                  View public page
-                </Link>
+                <span>Current internal release</span>
               ) : (
                 <span>Superseded by a later release</span>
               )}

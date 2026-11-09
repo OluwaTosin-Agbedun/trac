@@ -2,13 +2,11 @@
 // Review, publish and withdraw. Each action re-checks the session and role, validates every input
 // (bound ids included) and leaves the final word to the database functions, which check the role,
 // the exact approved content hash and the published base again.
-import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { asUser } from "@/server/db";
 import { viewerForAction } from "@/server/auth/session";
 import { isUuid } from "@/server/auth/crypto";
 import { dbErrorMessage, fail, field, ok } from "@/server/actions/result";
-import { slugForRevision } from "@/server/data/cms/review";
 import type { FormState } from "@/components/ui/Form";
 
 const REVIEWERS = ["reviewer", "admin"] as const;
@@ -50,18 +48,13 @@ export async function publishAction(revisionId: string, _prev: FormState, fd: Fo
   if (fd.get("confirm") !== "yes") {
     return fail("Confirm that you have checked the preview of this exact revision.", { confirm: ["Required before publishing."] });
   }
-  let slug: string | null;
   try {
     await asUser(viewer.userId, (tx) => tx.query("select publish_revision($1) as id", [revisionId]));
-    slug = await slugForRevision(viewer, revisionId);
   } catch (err) {
     return fail(dbErrorMessage(err));
   }
-  if (!slug) {
-    refresh();
-    return ok("Published.");
-  }
-  redirect(`/institutions/${encodeURIComponent(slug)}`);
+  refresh();
+  return ok("Published to the internal release history. The public Institutions page shows the verified register: update it under Compliance report.");
 }
 
 export async function withdrawAction(institutionId: string, _prev: FormState, fd: FormData): Promise<FormState> {

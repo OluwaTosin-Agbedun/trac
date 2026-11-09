@@ -1,0 +1,2 @@
+# Migrations are fingerprinted (SHA-256) when applied, so their bytes must be identical on every machine.
+*.sql text eol=lf

@@ -2,7 +2,7 @@
 import { useActionState, useState } from "react";
 import { Field, FormMessage, inputClass, textareaClass, type FormState } from "@/components/ui/Form";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { commitImportAction, decideRowAction, hideReportAction, showReportAction, stageImportAction } from "../actions";
+import { commitImportAction, decideRowAction, showReportAction, stageImportAction } from "../actions";
 import { boundAction } from "@/lib/boundAction";
 
 export function UploadForm() {
@@ -86,13 +86,13 @@ export function DecisionForm({ importId, rowId, unnamed, options, suggested = nu
 }
 
 export function ReportForm({ importId, shown }: { importId: string; shown: boolean }) {
-  const [state, action] = useActionState(shown ? hideReportAction : boundAction(showReportAction, importId), undefined as FormState);
+  const [state, action] = useActionState(boundAction(showReportAction, importId), undefined as FormState);
   return (
     <form action={action} className="flex flex-col gap-3">
       <FormMessage state={state} />
       <div>
-        <SubmitButton variant={shown ? "secondary" : "primary"} pendingLabel={shown ? "Hiding…" : "Adding…"}>
-          {shown ? "Hide the report from the public site" : "Add these institutions to the register"}
+        <SubmitButton variant={shown ? "secondary" : "primary"} pendingLabel="Adding…">
+          {shown ? "Add any new institutions again" : "Add these institutions to the register"}
         </SubmitButton>
       </div>
     </form>

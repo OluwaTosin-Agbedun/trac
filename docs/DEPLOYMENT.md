@@ -1,8 +1,27 @@
-# Deployment: Neon Postgres
+# Deployment: Vercel and Neon Postgres
 
-The app runs on Postgres. Local development uses an empty PGlite database. Production
-targets [Neon](https://neon.com). Nothing here has been run against a real Neon project yet. It is
-the checklist to follow when one exists.
+The site is live on Vercel with a Neon Postgres database. Local development uses PGlite.
+
+## Release checklist (every deploy that adds migrations)
+
+Migrations 0014 to 0017 replace database functions that earlier builds call, so the database and
+the code must change together. In order:
+
+1. In Neon, create a restore branch from `main` named after the date (for example
+   `pre-release-2026-11-09`). This is the rollback point.
+2. From an up-to-date checkout of `main`, with the **direct** (not `-pooler`) owner connection string:
+   `MIGRATION_DATABASE_URL="<direct owner URL>" npm run db:migrate`. It applies only what is missing,
+   in order, and refuses a migration file that has changed since it was applied.
+3. Deploy the same commit on Vercel straight away (a push to `main` does this), then smoke-test:
+   `/institutions`, one record page `/institutions/<slug>`, `/compare`, and `/admin/report`.
+4. Rollback: reset Neon `main` to the restore branch and redeploy the previous commit in Vercel.
+
+Production environment variables (Vercel, Production scope only; never commit them): `DATABASE_URL`
+(pooled, `nut_app` login), `SESSION_SECRET`, `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, `SETUP_TOKEN` (remove
+after the first administrator exists), `SITE_URL` (the public address), `CLIENT_IP_HEADER=x-vercel-forwarded-for`,
+and optionally `CONTACT_EMAIL` (shown on the site for corrections). Preview deployments must not use the
+production database. Migration 0016 grants the new `nut_cron` role to `nut_app` when that login exists.
+`.gitattributes` pins SQL files to LF line endings so migration fingerprints match on every machine.
 
 ## 1. Create the Neon project
 

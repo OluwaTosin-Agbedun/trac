@@ -9,6 +9,10 @@ This is the legacy tracker sheet, *REPORT ON FINANCIAL TRANSPARENCY COMPLIANCE, 
   saved here unchanged. The only change is that empty cells after the last indicator column were
   trimmed from each line. Quoted multi-line cells, stray spaces, `#REF!` serials and every
   original value are kept as they were.
+- **Personal names removed.** Every head of institution and bursar name has been replaced with
+  "Withheld" so the repository holds no personal data. Line breaks inside quoted cells were kept,
+  so line numbers and every other value are unchanged. The real names stay in the team's workbook
+  and enter the database only when that workbook is imported.
 - **What it is not.** It is not the original workbook. Hyperlink targets hidden behind display
   text, such as "Key Institutional Data | NOUN", cannot be recovered from it. If the `.xlsx` is
   available, add it here as well. The importer can use it to recover real link targets.

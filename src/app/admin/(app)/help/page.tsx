@@ -24,8 +24,9 @@ export default function HelpPage() {
         <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-accent">Help</p>
         <h1 className="mt-1 font-serif text-3xl font-semibold text-ink-strong">How to manage the site</h1>
         <p className="mt-2 text-[15px] text-muted">
-          Everything on the public site comes from this CMS. Nothing goes public until a reviewer approves it and presses
-          <strong> Publish</strong>, so you can edit freely. Every save and decision is recorded in the history.
+          The public Institutions page shows the verified register, managed under <Link href="/admin/report">Compliance report</Link>.
+          A record goes public only when a second person verifies it, so you can edit freely. Every save and decision is recorded.
+          Tasks 2 and 3 cover the internal records the research assistant works on; they do not change the public site.
         </p>
       </div>
 
@@ -38,7 +39,7 @@ export default function HelpPage() {
         <li>The spreadsheet’s Yes/No ticks appear beside each indicator as unverified hints only. To add institutions from a new spreadsheet, upload it in <Link href="/admin/imports">Imports</Link> and press <strong>Add these institutions to the register</strong>; existing records are never overwritten.</li>
       </Task>
 
-      <Task n={2} title="Add or update an institution" who="Editors">
+      <Task n={2} title="Internal records: add or update an institution" who="Editors">
         <li>Open <Link href="/admin/institutions">Institutions</Link>. Search for the name, or use <strong>Add institution</strong>.</li>
         <li>On the institution page, press <strong>Start a new draft</strong> if there is no open draft.</li>
         <li>Fill in the profile (head, bursar, website) and the date you last checked the official sources. Press <strong>Save profile</strong>.</li>
@@ -46,7 +47,7 @@ export default function HelpPage() {
         <li>Press <strong>Submit for review</strong>. The draft locks so the reviewer sees exactly what you submitted.</li>
       </Task>
 
-      <Task n={3} title="Review and publish" who="Reviewers and administrators">
+      <Task n={3} title="Internal records: review and release" who="Reviewers and administrators">
         <li>Open the <Link href="/admin/review">Review queue</Link> and choose a submission. Changes from the public version are highlighted.</li>
         <li>Check each published finding has a period and evidence. Then <strong>Approve</strong>, or <strong>Request changes</strong> with a note for the editor.</li>
         <li>After approving, open <strong>Preview public page</strong>, tick the confirmation box and press <strong>Publish approved version</strong>.</li>

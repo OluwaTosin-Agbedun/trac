@@ -3,14 +3,31 @@ export type ReportSection =
   | "federal_university" | "federal_polytechnic" | "federal_monotechnic"
   | "state_university" | "state_polytechnic" | "state_monotechnic";
 
-export const REPORT_SECTIONS: { key: ReportSection; label: string; ownership: "Federal" | "State"; head: string }[] = [
-  { key: "federal_university", label: "Federal universities", ownership: "Federal", head: "Vice-Chancellor" },
-  { key: "federal_polytechnic", label: "Federal polytechnics", ownership: "Federal", head: "Rector" },
-  { key: "federal_monotechnic", label: "Federal monotechnics", ownership: "Federal", head: "Rector / Provost" },
-  { key: "state_university", label: "State universities", ownership: "State", head: "Vice-Chancellor" },
-  { key: "state_polytechnic", label: "State polytechnics", ownership: "State", head: "Rector" },
-  { key: "state_monotechnic", label: "State monotechnics", ownership: "State", head: "Rector / Provost" },
+export interface ReportSectionInfo {
+  key: ReportSection;
+  /** Plural, for lists and tabs: "Federal universities". */
+  label: string;
+  /** One institution's category: "Federal university". */
+  singular: string;
+  /** The tab text inside its ownership group: "Universities". */
+  short: string;
+  ownership: "Federal" | "State";
+  /** The title of the institution's head. */
+  head: string;
+}
+
+export const REPORT_SECTIONS: ReportSectionInfo[] = [
+  { key: "federal_university", label: "Federal universities", singular: "Federal university", short: "Universities", ownership: "Federal", head: "Vice-Chancellor" },
+  { key: "federal_polytechnic", label: "Federal polytechnics", singular: "Federal polytechnic", short: "Polytechnics", ownership: "Federal", head: "Rector" },
+  { key: "federal_monotechnic", label: "Federal monotechnics", singular: "Federal monotechnic", short: "Monotechnics", ownership: "Federal", head: "Rector / Provost" },
+  { key: "state_university", label: "State universities", singular: "State university", short: "Universities", ownership: "State", head: "Vice-Chancellor" },
+  { key: "state_polytechnic", label: "State polytechnics", singular: "State polytechnic", short: "Polytechnics", ownership: "State", head: "Rector" },
+  { key: "state_monotechnic", label: "State monotechnics", singular: "State monotechnic", short: "Monotechnics", ownership: "State", head: "Rector / Provost" },
 ];
+
+/** The category for a stored section key, or undefined for an unknown key. */
+export const reportSection = (key: string | null | undefined): ReportSectionInfo | undefined =>
+  REPORT_SECTIONS.find((s) => s.key === key);
 
 export type ReportStatus = "updated" | "partial" | "not_updated" | "not_yet_updated" | "not_recorded";
 

@@ -77,9 +77,7 @@ export function EditorHeader({ data }: { data: EditorData }) {
           <dd className="mt-0.5 text-ink">
             {published ? (
               <>
-                <Link href={`/institutions/${published.slug}`} className="font-semibold underline underline-offset-2">
-                  View release {published.releaseNumber}
-                </Link>
+                <span className="font-semibold">Internal release {published.releaseNumber}</span>
                 <span className="block text-[13px] text-muted">Published {formatDate(published.publishedAt)}</span>
               </>
             ) : (

@@ -1,5 +1,37 @@
 # Progress
 
+## Update 9 Nov 2026: the register is the single public path
+
+- **Public site:** every institution has a page at `/institutions/<slug>` (old profile, record and
+  release addresses redirect with real 308s; unknown addresses return real 404s). The list, overview,
+  Compare and How we score read only the verified register. Each record is scored under the rule
+  version and assessment year it was verified with; evidence for an earlier year than an indicator's
+  period counts 0 and is marked. Headline tiles removed (one verified count kept). Hidden or
+  unreachable register shows "temporarily unavailable" instead of zeros. robots.txt, sitemap.xml,
+  page titles, a neutral icon, readable focus outlines, phone layouts and cached public reads.
+- **CMS register screen:** saves bound to the version opened (conflicts say "reload"), every typed
+  value kept when a save is refused, source page for the head and bursar, importer warnings in plain
+  words, side-by-side verified vs working values, withdraw verification (reason), remove = archive
+  (reason, restorable), assignments with due dates, filters across categories (assigned to me, due
+  for re-checking, links needing attention, flagged, archived), history panel, split settings
+  (assessment year, re-check interval; show or hide the register with a reason).
+- **Database (0016, 0017):** frozen public listing until verification, hash-bound saves, assignments
+  with editor scope, kept verified versions, archive and restore, rule versions, assessment year,
+  stable slugs, Import centre decisions respected (possible duplicates wait), every import reason on
+  the record, nut_cron role for a scheduled link check.
+- **Import check with the owner's workbook:** 399 rows read; every loaded institution matched by name
+  and section with the right state, head/bursar presence and Yes/No ticks (kept private); 25 rows held
+  as possible duplicates wait for a decision; 17 shared or multi-address websites are withheld with the
+  reason now shown to editors (0017).
+- **Personal data:** head and bursar names removed from the repository's tracker export (726 cells).
+- **Security:** repository and bundle secret scans clean; git history has no keys or connection
+  strings; zod updated (npm audit: 0 vulnerabilities).
+- **Verified:** 208 tests pass; tsc and lint clean; production build clean; browser test on a throwaway
+  copy of the owner's workbook (setup, edit, second-person verification, public record and list).
+- **Not done yet:** CMS dashboard cards and full help rewrite for the register, account recovery
+  (admin reset link, My account), research assistant feeding the register and PDF text, scheduled link
+  check route and CSP, CI workflow. The live site needs migrations 0014-0017 applied on Neon.
+
 ## Update 23 Oct 2026: the verified register (the Chancellor's requirements)
 
 - **Unverified ticks are off the public site.** Migration 0014 marks every record unverified, and the

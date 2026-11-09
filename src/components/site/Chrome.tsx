@@ -8,14 +8,17 @@ import { join } from "node:path";
 import { connection } from "next/server";
 import { dataMode } from "@/server/db";
 import { NavBarLinks, StaticNavBarLinks } from "./NavLinks";
+import { siteConfig } from "./siteConfig";
 
 export const PUBLIC_NAV = [
   { href: "/", label: "Overview" },
   { href: "/institutions", label: "Institutions" },
   { href: "/compare", label: "Compare" },
+  { href: "/methodology", label: "How we score" },
 ] as const;
 
 export const SITE_TITLE = "Nigerian Institution Compliance Monitoring Portal";
+export const SITE_SUBTITLE = "Financial Disclosure Across Nigerian Tertiary Institutions";
 
 /**
  * Official logos are shown only when the files have been supplied in public/logos/. No emblem is
@@ -28,7 +31,8 @@ const LOGOS = {
 
 function logoPath(kind: keyof typeof LOGOS): string | null {
   for (const f of LOGOS[kind]) {
-    if (existsSync(join(process.cwd(), "public", "logos", f))) return `/logos/${f}`;
+    // A plain <img> is not rewritten by Next, so the base path (e.g. /tracker) is added here.
+    if (existsSync(join(process.cwd(), "public", "logos", f))) return `${siteConfig().basePath}/logos/${f}`;
   }
   return null;
 }
@@ -42,7 +46,7 @@ function Logo({ kind, alt }: { kind: keyof typeof LOGOS; alt: string }) {
 
 export function PartnershipBand() {
   return (
-    <div className="bg-[#0a1c3f] text-white">
+    <div className="on-dark bg-[#0a1c3f] text-white">
       <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 text-[13px] sm:px-6">
         <span className="flex items-center gap-2">
           <Logo kind="athena" alt="Athena Centre for Policy and Leadership" />
@@ -62,7 +66,7 @@ export function PartnershipBand() {
 export function SiteHeader() {
   return (
     <header>
-      <div className="bg-band">
+      <div className="on-dark bg-band">
         <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
           <Suspense fallback={<StaticNavBarLinks items={PUBLIC_NAV} />}>
             <NavBarLinks items={PUBLIC_NAV} />
@@ -97,11 +101,13 @@ export function LocalBanner() {
 const FOOTER_LINK = "text-[#c9d6ec] no-underline hover:text-white hover:underline";
 
 export function SiteFooter() {
+  const { contactEmail } = siteConfig();
   return (
-    <footer className="mt-20 bg-[#0a1c3f] text-[#c9d6ec]">
+    <footer className="on-dark mt-20 bg-[#0a1c3f] text-[#c9d6ec]">
       <div className="mx-auto grid max-w-[1240px] gap-10 px-4 py-14 text-sm leading-relaxed sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.4fr_1fr_1.4fr]">
         <div className="flex flex-col gap-3">
           <span className="font-serif text-xl font-bold leading-snug text-white">{SITE_TITLE}</span>
+          <span className="text-[15px] font-semibold text-white/90">{SITE_SUBTITLE}</span>
           <p className="m-0">
             Athena Centre for Policy and Leadership, in partnership with the Federal Ministry of Education. An initiative of the
             Arthur Nwankwo Institute of Education.
@@ -111,6 +117,7 @@ export function SiteFooter() {
           <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-white">Explore</span>
           <Link href="/institutions" className={FOOTER_LINK}>Institutions</Link>
           <Link href="/compare" className={FOOTER_LINK}>Compare institutions</Link>
+          <Link href="/methodology" className={FOOTER_LINK}>How we score</Link>
         </nav>
         <div className="flex flex-col gap-2">
           <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-white">About the findings</span>
@@ -118,6 +125,11 @@ export function SiteFooter() {
             Findings describe what institutions publish on their official websites. They are not judgments about academic quality,
             financial propriety or breach of any law, and they do not rank institutions.
           </p>
+          {contactEmail ? (
+            <p className="m-0">
+              Spotted an error? Email <a href={`mailto:${contactEmail}`} className="text-white underline hover:text-white">{contactEmail}</a>.
+            </p>
+          ) : null}
         </div>
       </div>
       <div className="border-t border-[#1d3566]">
