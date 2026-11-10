@@ -6,8 +6,8 @@ import { Field, FormMessage, inputClass, textareaClass, type FormState } from "@
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { PERIOD_TYPES, PERIOD_TYPE_LABEL, VALUE_SCALES } from "@/lib/indicators";
 import {
-  acceptAllAction, acceptProposalAction, addHostAction, cancelScanAction, decideHostAction, rejectProposalAction,
-  requestScanAction, runQueuedScansAction,
+  acceptAllAction, acceptProposalAction, addHostAction, approveRegisterHomepagesAction, cancelScanAction, decideHostAction,
+  rejectProposalAction, requestScanAction, runQueuedScansAction,
 } from "../../../research/actions";
 import { boundAction } from "@/lib/boundAction";
 
@@ -62,6 +62,18 @@ export function RequestScanForm({ institutionId }: { institutionId: string }) {
       </details>
       <div>
         <SubmitButton pendingLabel="Queuing…">Request a scan</SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+export function ApproveRegisterHomepagesForm() {
+  const [state, action] = useActionState(approveRegisterHomepagesAction, undefined as FormState);
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <FormMessage state={state} />
+      <div>
+        <SubmitButton variant="secondary" pendingLabel="Approving homepages…">Approve the homepages of register records</SubmitButton>
       </div>
     </form>
   );

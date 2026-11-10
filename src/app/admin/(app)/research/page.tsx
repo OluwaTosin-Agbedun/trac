@@ -6,11 +6,11 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { requireViewer } from "@/server/auth/session";
 import { dataMode } from "@/server/db";
-import { getResearchOverview, listScans } from "@/server/data/cms/research";
-import { Notice } from "@/components/ui/Form";
+import { getResearchOverview, getWorkerLine, listScans } from "@/server/data/cms/research";
 import { formatDateTime } from "@/lib/format";
+import { WorkerStatusLine } from "./_components/WorkerStatusLine";
 import { SCAN_STATUS_LABEL, scanCoverageText } from "../institutions/[id]/_components/ResearchPanel";
-import { CancelScanForm, HostDecisionForm, RunQueuedForm } from "../institutions/[id]/_components/ResearchForms";
+import { ApproveRegisterHomepagesForm, CancelScanForm, HostDecisionForm, RunQueuedForm } from "../institutions/[id]/_components/ResearchForms";
 
 export const metadata: Metadata = { title: "Research centre", robots: { index: false } };
 
@@ -26,9 +26,7 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: "wa
 async function ResearchBody() {
   await connection();
   const viewer = await requireViewer();
-  const [overview, scans] = await Promise.all([getResearchOverview(viewer), listScans(viewer, 50)]);
-  // Read at request time; only whether it is set is shown, never any part of the value.
-  const configured = Boolean(process.env.ANTHROPIC_API_KEY);
+  const [overview, scans, worker] = await Promise.all([getResearchOverview(viewer), listScans(viewer, 50), getWorkerLine(viewer)]);
   const local = dataMode() === "local";
   const isAdmin = viewer.role === "admin";
 
@@ -43,12 +41,7 @@ async function ResearchBody() {
         </p>
       </div>
 
-      {!configured ? (
-        <Notice tone="warn" title="Configuration required">
-          Set ANTHROPIC_API_KEY on the server that runs scans (never in the browser or in the repository). Without it, scans stop
-          immediately with this message. Everything else in the CMS works without it.
-        </Notice>
-      ) : null}
+      <WorkerStatusLine line={worker} forAdmin={isAdmin} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Queued" value={overview.counts.queued} />
@@ -62,9 +55,21 @@ async function ResearchBody() {
           <h2 className="font-serif text-xl font-semibold text-ink-strong">Run scans on this computer</h2>
           <p className="text-sm text-muted">
             With the local database, queued scans run inside this server when you press the button. On the live site a separate
-            worker service runs them automatically.
+            worker service runs them, one at a time, while it is running.
           </p>
           <div><RunQueuedForm /></div>
+        </section>
+      ) : null}
+
+      {isAdmin ? (
+        <section aria-labelledby="homepages-h" className="flex flex-col gap-2 rounded-md border border-rule bg-white p-5">
+          <h2 id="homepages-h" className="font-serif text-xl font-semibold text-ink-strong">Register homepages as research sources</h2>
+          <p className="max-w-[80ch] text-sm text-muted">
+            Approves the homepage recorded on every register record that is linked to a research institution, so scans can be requested
+            from the record. Each approval covers the website and its subdomains and is recorded in the history. Websites an
+            administrator refused before stay refused, and social media pages and shared hosting services are never approved.
+          </p>
+          <ApproveRegisterHomepagesForm />
         </section>
       ) : null}
 

@@ -243,6 +243,16 @@ export function describeEvent(ev: EventLike, nameOf: (id: string) => string | nu
       return line("Restored to the register", [], "ok");
     case "report.entry_removed":
       return line("Deleted from the report (before records were kept when removed)", [], "danger");
+    case "report.proposal_applied": {
+      const key = str(d.indicator);
+      const source = str(d.source_url);
+      return line("Research suggestion applied", [
+        ...(key ? [`${indicatorLabel(key)}: ${assessmentText(d.before as Partial<Assessment> | null)} → ${assessmentText(d.after as Partial<Assessment> | null)}`] : []),
+        ...(source ? [`Evidence: ${source}`] : []),
+      ]);
+    }
+    case "report.scan_requested":
+      return line("Research scan requested");
     case "report.entry_assigned": {
       const person = (id: unknown, none: string) => (str(id) ? nameOf(String(id)) ?? "a former team member" : none);
       const due = str(d.due_on);

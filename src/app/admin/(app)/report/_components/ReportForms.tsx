@@ -32,15 +32,20 @@ function useRound(state: FormState): number {
   return round;
 }
 
-/** A form whose fields are mounted afresh after each answer, with the answer's message below it. */
-function KeptForm({ state, action, id, className = "flex flex-col gap-3", messageFirst = false, children }: {
-  state: FormState; action: Action; id?: string; className?: string; messageFirst?: boolean; children: ReactNode;
+/**
+ * A form whose fields are mounted afresh after each answer, with the answer's message below it.
+ * version (the record's content hash) also remounts it when the record changed some other way, for
+ * example when a research suggestion was applied: the fields then show the saved values, and a save
+ * from stale fields can never undo that change.
+ */
+function KeptForm({ state, action, id, className = "flex flex-col gap-3", messageFirst = false, version, children }: {
+  state: FormState; action: Action; id?: string; className?: string; messageFirst?: boolean; version?: string | null; children: ReactNode;
 }) {
   const round = useRound(state);
   return (
     <div className="flex flex-col gap-3">
       {messageFirst ? <FormMessage state={state} /> : null}
-      <form key={round} id={id} action={action} className={className} noValidate>{children}</form>
+      <form key={`${round}:${version ?? ""}`} id={id} action={action} className={className} noValidate>{children}</form>
       {messageFirst ? null : <FormMessage state={state} />}
     </div>
   );
@@ -132,14 +137,18 @@ export function EntryForm({ entryId, hash, initial, idPrefix, today, assessmentY
   entryId: string | null; hash: string | null; initial: EntryValues; idPrefix: string; today: string; assessmentYear: number | null;
 }) {
   const [state, action] = useActionState(boundAction(saveEntryAction, entryId, hash), undefined as FormState);
-  const v = typedValues(state);
+  // What was typed is given back after a refusal, but not once the record itself has changed since
+  // (a research suggestion was applied): the fields then show the record as it is now.
+  const [answered, setAnswered] = useState({ state, hash });
+  if (answered.state !== state) setAnswered({ state, hash });
+  const v = answered.hash === hash ? typedValues(state) : null;
   // After a refusal every field shows what was typed (even a field cleared on purpose).
   const pick = (name: string, saved: string | null | undefined) => (v ? v[name] ?? "" : saved ?? "");
   const stateValue = pick("state", initial.state);
   const stateOptions = stateValue && !(NIGERIAN_STATES as readonly string[]).includes(stateValue) ? [stateValue, ...NIGERIAN_STATES] : [...NIGERIAN_STATES];
   const id = idPrefix;
   return (
-    <KeptForm state={state} action={action} className="flex flex-col gap-5">
+    <KeptForm state={state} action={action} className="flex flex-col gap-5" version={hash}>
       <fieldset className="grid gap-4 border-0 p-0 md:grid-cols-2">
         <legend className="mb-2 text-sm font-semibold text-ink-strong">Institution</legend>
         <Field id={`${id}-name`} label="Name">

@@ -100,10 +100,13 @@ Legacy TRUE/FALSE values stay on the import rows as unverified claims and are ne
   import centre (Excel, CSV, TSV), team, invitations (revocable) and sign-in lock clearing, and a
   plain-language help page.
 - **Research assistant:** administrators approve each institution's official websites; editors
-  request scans; a bounded, SSRF-safe crawler captures pages (robots.txt respected); Claude
+  request scans; a bounded, SSRF-safe crawler captures pages and PDF text (robots.txt respected;
+  PDFs read in a separate thread, at most 60 pages; scanned PDFs are reported as unreadable); Claude
   (`claude-opus-5-5`, structured output) proposes values that must quote the captured text verbatim;
-  editors accept, correct or reject each proposal into the draft. It never publishes or marks
-  anything "not found". Without `ANTHROPIC_API_KEY` the CMS shows "Configuration required".
-- **Not yet:** PDF text extraction for scans, scheduled scans, email notifications and official logo files.
+  editors accept, correct or reject each proposal into the draft, or apply it to a register record
+  from the record's "Research assistant suggestions" panel (a second reviewer still verifies the
+  record). It never publishes or marks anything "not found". The worker runs as its own service
+  (docs/DEPLOYMENT.md, section 5a); the CMS shows whether it is running and has a model key.
+- **Not yet:** OCR for scanned PDFs, scheduled scans, email notifications and official logo files.
 
 See [PROGRESS.md](PROGRESS.md).

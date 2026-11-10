@@ -9,6 +9,8 @@ import { viewerForAction } from "@/server/auth/session";
 import { isUuid } from "@/server/auth/crypto";
 import { dbErrorMessage, fail, field, ok } from "@/server/actions/result";
 import { runNextJob } from "@/server/research/worker";
+import { getWorkerLine } from "@/server/data/cms/research";
+import { queuedMessage } from "@/lib/workerStatus";
 import { indicatorByKey, PERIOD_TYPES, VALUE_SCALES } from "@/lib/indicators";
 import type { FormState } from "@/components/ui/Form";
 
@@ -47,6 +49,34 @@ export async function decideHostAction(hostId: string, approved: boolean): Promi
   return ok(approved ? "Website approved." : "Website not approved. The assistant will not read it.");
 }
 
+/**
+ * Administrators: approve, as research sources, the homepage hosts of every register record that has
+ * a homepage and a linked institution. Hosts an administrator refused before stay refused.
+ */
+export async function approveRegisterHomepagesAction(): Promise<FormState> {
+  const viewer = await viewerForAction(["admin"]);
+  if (!viewer) return fail("Only administrators can approve research sources.");
+  let r: { approved: number; already_approved: number; previously_refused: number; not_linked: number; unusable: number };
+  try {
+    const [row] = await asUser(viewer.userId, (tx) => tx.query<{ r: typeof r }>("select approve_register_homepages() as r"));
+    r = row.r;
+  } catch (err) {
+    return fail(dbErrorMessage(err));
+  }
+  refresh();
+  const n = (count: number, one: string, many: string) => `${count.toLocaleString("en-NG")} ${count === 1 ? one : many}`;
+  const parts = [
+    `${n(r.approved, "homepage", "homepages")} approved as research sources`,
+    `${n(r.not_linked, "record with a homepage is", "records with a homepage are")} not linked to a research institution yet`,
+  ];
+  if (r.already_approved) parts.push(`${n(r.already_approved, "was", "were")} already approved`);
+  if (r.previously_refused) parts.push(`${n(r.previously_refused, "was", "were")} refused earlier and left as they are`);
+  if (r.unusable) {
+    parts.push(`${n(r.unusable, "homepage is", "homepages are")} not the institution’s own website (for example a social media page) and ${r.unusable === 1 ? "was" : "were"} skipped`);
+  }
+  return ok(`${parts.join("; ")}.`);
+}
+
 export async function requestScanAction(institutionId: string, _prev: FormState, fd: FormData): Promise<FormState> {
   const viewer = await viewerForAction(TEAM);
   if (!viewer) return fail(SIGNED_OUT);
@@ -63,9 +93,7 @@ export async function requestScanAction(institutionId: string, _prev: FormState,
     return fail(dbErrorMessage(err), undefined, { start_urls: raw });
   }
   refresh();
-  return ok(dataMode() === "local"
-    ? "Scan queued. Press “Run queued scans now” on this page or in the Research centre to start it."
-    : "Scan queued. The research worker picks it up shortly.");
+  return ok(queuedMessage(await getWorkerLine(viewer)));
 }
 
 export async function cancelScanAction(jobId: string): Promise<FormState> {

@@ -1,5 +1,34 @@
 # Progress
 
+## Update 10 Nov 2026: the research assistant feeds the register
+
+- **Register suggestions:** each record in Compliance report shows the research assistant's pending
+  proposals for its linked institution, with the exact quoted text, where it is (PDF page included),
+  the source link and capture date. **Apply to this record** fills that indicator in the working copy
+  (published or partially published, year, evidence link, date checked, note); **Dismiss** needs a
+  reason. A second reviewer still verifies the record. Scans can be requested from the record; an
+  administrator can approve the record's homepage as a research source, or every linked record's
+  homepage at once from the Research centre.
+- **Worker:** status reported to the CMS ("running", "not seen for N minutes", "no API key"), lease
+  renewed during the Claude call (a cancel or lost lease aborts it), cancelled scans of a dead worker
+  closed, one retry for transient fetch errors, unchanged pages not sent to Claude again, start pages
+  seeded from the record's own links, PDF text (60 pages, 5 MB, 20 s, separate thread; scanned PDFs
+  reported as unreadable), User-Agent contact = SITE_URL.
+- **Database (0018):** worker_status, worker recovery, capture extraction method and page count,
+  proposals' register status, apply_proposal_to_register, request_register_scan,
+  approve_register_homepages.
+- **Deployment:** docs/DEPLOYMENT.md section 5a gives the worker's hosting steps (Render or Railway),
+  its environment variables (never on Vercel) and cost control.
+- **Review fixes:** captured text and every worker payload are made storable (a stray NUL byte in a
+  page, PDF or model reply had stopped a capture or the end of a scan being recorded); a single failed
+  lease renewal no longer aborts the Claude call; PDF text cannot fake a page marker with odd spacing;
+  homepages on social networks or shared hosting services are never approved as research sources; a
+  suggestion from a website that was withdrawn since the scan cannot be applied.
+- **Verified:** 254 tests pass (222 + 32 server); tsc and lint clean; repository secret scan clean. Not
+  run here: a production build or a browser check.
+- **Still to do on the live site:** apply migration 0018 on Neon (release checklist), create the
+  nut_worker_app login, and start the worker service with its own variables (section 5a).
+
 ## Update 9 Nov 2026: the register is the single public path
 
 - **Public site:** every institution has a page at `/institutions/<slug>` (old profile, record and

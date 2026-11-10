@@ -21,7 +21,17 @@ export const FETCH_LIMITS = {
   maxRedirects: 5,
 } as const;
 
-export const USER_AGENT = "NigerianInstitutionComplianceResearch/1.0 (+https://github.com/athenacenterpl-cmd/nigerian-university-tracker)";
+const FALLBACK_CONTACT = "https://github.com/athenacenterpl-cmd/nigerian-university-tracker";
+
+/**
+ * The crawler's User-Agent. Its contact address is the public site (SITE_URL) when that is set to a
+ * plain web address, so a website owner who sees the crawler in their logs finds who runs it.
+ */
+export function userAgent(env: Record<string, string | undefined> = process.env): string {
+  const site = env.SITE_URL?.trim().replace(/\/+$/, "") ?? "";
+  const contact = /^https?:\/\/[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?(:\d{1,5})?(\/[A-Za-z0-9._~-]+)*$/i.test(site) ? site : FALLBACK_CONTACT;
+  return `NigerianInstitutionComplianceResearch/1.0 (+${contact})`;
+}
 
 const ALLOWED_TYPES = ["text/html", "application/xhtml+xml", "text/plain", "application/pdf"];
 
@@ -140,7 +150,7 @@ function requestOnce(url: URL, opts: Required<Pick<FetchOptions, "maxBytes" | "t
       method: "GET",
       lookup: guardedLookup(opts.lookup) as never,
       headers: {
-        "user-agent": USER_AGENT,
+        "user-agent": userAgent(),
         accept: opts.accept ?? "text/html,application/xhtml+xml,text/plain;q=0.9,application/pdf;q=0.8",
         "accept-encoding": "gzip, deflate, br",
       },

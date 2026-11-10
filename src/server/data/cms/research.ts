@@ -4,8 +4,9 @@ import "server-only";
 // Captured text is returned as plain data and rendered as text, never as HTML.
 //
 // Relative imports (no "@/") keep this loadable by node for local checks.
-import { asUser } from "../../db/index.ts";
+import { asUser, dataMode } from "../../db/index.ts";
 import type { Viewer } from "../../auth/accounts.ts";
+import { describeWorker, type WorkerLine, type WorkerStatus } from "../../../lib/workerStatus.ts";
 
 type Who = Pick<Viewer, "userId" | "role">;
 
@@ -197,15 +198,126 @@ export async function getInstitutionResearch(viewer: Who, institutionId: string)
   });
 }
 
+export interface RegisterSuggestion {
+  id: string;
+  fieldKey: string;
+  /** The register status applying it would set. */
+  registerStatus: "published" | "partial";
+  /** The assistant's own confidence in the evidence: uncertain proposals carry reasons to check. */
+  candidateState: "published" | "uncertain" | null;
+  periodLabel: string | null;
+  valueLiteral: string | null;
+  excerpt: string;
+  locator: string | null;
+  uncertainty: string[];
+  extractionMethod: string;
+  createdAt: string;
+  source: { id: string; url: string; title: string | null; fetchedAt: string };
+}
+
+export interface RegisterResearch {
+  /** The record's linked institution as stored (null: not linked to a research institution). */
+  institutionId: string | null;
+  homepageUrl: string | null;
+  /** The host an approval of the homepage would cover (no "www."), or null if it is not usable. */
+  homepageHost: string | null;
+  archived: boolean;
+  assignedEditorId: string | null;
+  /** The working copy's current status and year for each indicator, to show beside a suggestion. */
+  current: Record<string, { status: string; year: string | null }>;
+  approvedHosts: string[];
+  /** The homepage host is waiting for an administrator (suggested, not yet decided). */
+  homepagePending: boolean;
+  /** An administrator refused the homepage host earlier. */
+  homepageRefused: boolean;
+  activeScan: ScanRow | null;
+  lastScan: ScanRow | null;
+  suggestions: RegisterSuggestion[];
+}
+
+/** What the register record's suggestions panel shows, for its linked institution. */
+export async function getRegisterResearch(viewer: Who, entryId: string): Promise<RegisterResearch | null> {
+  return asUser(viewer.userId, async (tx) => {
+    const [e] = await tx.query<{
+      institution_id: string | null; homepage_url: string | null; homepage_host: string | null; archived: boolean; assigned_editor: string | null;
+      assessments: Record<string, { status?: unknown; year?: unknown }> | null;
+    }>(`select e.institution_id, e.homepage_url, register_research_host(e.homepage_url) as homepage_host,
+               e.archived_at is not null as archived, e.assigned_editor, e.assessments
+          from report_entries e where e.id = $1`, [entryId]);
+    if (!e) return null;
+    const current: RegisterResearch["current"] = {};
+    for (const [k, a] of Object.entries(e.assessments ?? {})) {
+      current[k] = { status: typeof a?.status === "string" ? a.status : "not_assessed", year: typeof a?.year === "string" ? a.year : null };
+    }
+    const base: RegisterResearch = {
+      institutionId: e.institution_id, homepageUrl: e.homepage_url, homepageHost: e.homepage_host, archived: e.archived,
+      assignedEditorId: e.assigned_editor, current, approvedHosts: [], homepagePending: false, homepageRefused: false,
+      activeScan: null, lastScan: null, suggestions: [],
+    };
+    if (!e.institution_id) return base;
+    const hosts = await tx.query<{ host: string; approved: boolean; decided: boolean }>(
+      "select host, approved, decided_at is not null as decided from source_hosts where institution_id = $1 order by host", [e.institution_id]);
+    const home = e.homepage_host ? hosts.find((h) => h.host === e.homepage_host) : undefined;
+    const scans = (await tx.query<ScanDbRow>(`${SCAN_SELECT} where j.institution_id = $1 order by j.requested_at desc limit 5`, [e.institution_id])).map(toScan);
+    const rows = await tx.query<{
+      id: string; field_key: string; proposed: Record<string, unknown>; candidate_state: "published" | "uncertain" | null; excerpt: string;
+      locator: string | null; uncertainty: string[] | null; extraction_method: string; created_at: unknown;
+      source_id: string; final_url: string; title: string | null; fetched_at: unknown;
+    }>(`select p.id, p.field_key, p.proposed, p.candidate_state::text as candidate_state, p.excerpt, p.locator, p.uncertainty,
+               p.extraction_method, p.created_at, s.id as source_id, s.final_url, s.title, s.fetched_at
+          from agent_proposals p join source_versions s on s.id = p.source_version_id
+         where p.institution_id = $1 and p.status = 'pending' and p.field_kind = 'indicator'
+         order by p.created_at desc, p.field_key limit 50`, [e.institution_id]);
+    const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
+    return {
+      ...base,
+      approvedHosts: hosts.filter((h) => h.approved).map((h) => h.host),
+      homepagePending: Boolean(home && !home.approved && !home.decided),
+      homepageRefused: Boolean(home && !home.approved && home.decided),
+      activeScan: scans.find((s) => s.status === "queued" || s.status === "running") ?? null,
+      lastScan: scans.find((s) => s.status !== "queued" && s.status !== "running") ?? null,
+      suggestions: rows.map((p) => ({
+        id: p.id, fieldKey: p.field_key, registerStatus: p.proposed?.register_status === "partial" ? "partial" : "published",
+        candidateState: p.candidate_state, periodLabel: text(p.proposed?.period_label, 40), valueLiteral: text(p.proposed?.value_literal, 200),
+        excerpt: p.excerpt, locator: p.locator, uncertainty: p.uncertainty ?? [], extractionMethod: p.extraction_method,
+        createdAt: iso(p.created_at) ?? "",
+        source: { id: p.source_id, url: p.final_url, title: p.title, fetchedAt: iso(p.fetched_at) ?? "" },
+      })),
+    };
+  });
+}
+
+/**
+ * What the research worker last reported about itself (last seen, whether its host has a model key,
+ * version), or null if no worker has run yet. Read through research_worker_status(), which checks the
+ * team role; nothing else about the worker host is exposed.
+ */
+export async function getWorkerStatus(viewer: Who): Promise<WorkerStatus | null> {
+  const [row] = await asUser(viewer.userId, (tx) =>
+    tx.query<{ last_seen_at: unknown; configured: boolean; version: string | null }>(
+      "select last_seen_at, configured, version from research_worker_status()"));
+  return row ? { lastSeenAt: iso(row.last_seen_at) ?? "", configured: row.configured === true, version: row.version } : null;
+}
+
+/**
+ * The worker status line. With the local database, scans run inside this server, so its own key
+ * decides "configured" until the in-process worker has reported; only that yes or no is used.
+ */
+export async function getWorkerLine(viewer: Who): Promise<WorkerLine & { version: string | null }> {
+  const status = await getWorkerStatus(viewer);
+  const local = dataMode() === "local";
+  return { ...describeWorker(status, { local, localConfigured: local && Boolean(process.env.ANTHROPIC_API_KEY?.trim()) }), version: status?.version ?? null };
+}
+
 /** A captured source's text, for the "Open captured text" view. Plain text only. */
 export async function getSourceVersion(viewer: Who, sourceId: string) {
   const [row] = await asUser(viewer.userId, (tx) =>
     tx.query<{
       id: string; institution_id: string; requested_url: string; final_url: string; fetched_at: unknown; http_status: number;
       content_type: string | null; content_hash: string; byte_length: number; title: string | null; text_content: string;
-      truncated: boolean; extraction_note: string | null;
+      truncated: boolean; extraction_note: string | null; extraction_method: string | null; page_count: number | null;
     }>(`select id, institution_id, requested_url, final_url, fetched_at, http_status, content_type, content_hash, byte_length, title,
-               text_content, truncated, extraction_note from source_versions where id = $1`, [sourceId]));
+               text_content, truncated, extraction_note, extraction_method, page_count from source_versions where id = $1`, [sourceId]));
   if (!row) return null;
   return { ...row, fetched_at: iso(row.fetched_at) ?? "" };
 }

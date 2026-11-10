@@ -35,6 +35,12 @@ async function SourceBody({ params }: Props) {
         </dd>
         <dt className="font-semibold">Captured</dt>
         <dd>{formatDateTime(s.fetched_at)} · HTTP {s.http_status}{s.content_type ? ` · ${s.content_type}` : ""}</dd>
+        {s.extraction_method === "pdf_text" ? (
+          <>
+            <dt className="font-semibold">Read as</dt>
+            <dd>Text from a PDF{s.page_count ? `, ${s.page_count.toLocaleString("en-NG")} page${s.page_count === 1 ? "" : "s"}` : ""}. Each page starts with a [Page N] line.</dd>
+          </>
+        ) : null}
         <dt className="font-semibold">Fingerprint</dt>
         <dd className="break-all font-mono text-[12px]">sha256 {s.content_hash} · {s.byte_length.toLocaleString("en-NG")} bytes</dd>
         {s.extraction_note || s.truncated ? (

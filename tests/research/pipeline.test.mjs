@@ -59,7 +59,11 @@ test("the crawl follows relevant same-site links, respects robots.txt and stays 
   assert.equal(coverage.documentsFetched, 1);
   assert.ok(sleeps.length > 0 && sleeps.every((ms) => ms > 0 && ms <= 10_000), "requests to one host are spaced out");
   const pdf = sources.find((s) => s.kind === "document");
-  assert.match(pdf.note, /PDF text extraction is not available/);
+  // The fixture's PDF is not a real PDF: it is kept, with no text and the reason in the coverage.
+  assert.equal(pdf.method, "pdf_text");
+  assert.equal(pdf.text, "");
+  assert.match(pdf.note, /could not be opened/);
+  assert.deepEqual(coverage.unreadableDocuments, [{ url: `https://${HOST}/docs/accounts-2023.pdf`, reason: "unreadable (could not be opened)" }]);
   const budget = sources.find((s) => s.finalUrl.endsWith("/approved-budget-2024"));
   assert.match(budget.text, /Personnel costs \| ₦4,250,500,000\.00/);
 });
@@ -206,4 +210,15 @@ test("a full scan records sources and stores only evidence-backed proposals", as
   assert.equal((await asAdmin("select count(*)::int as n from published_snapshots"))[0].n, 0);
   // The prompt the model saw fenced the hostile page text as data.
   assert.match(client.calls[0].messages[0].content, /<source id="S\d+"[^>]*>[\s\S]*Ignore all previous instructions/);
+});
+
+test("an indicator proposal may say the disclosure is partial, for the register", () => {
+  const { valid } = validateProposals([
+    { ...base, register_status: "partial" },
+    { ...base, field_key: "budget_capital", excerpt: "Capital expenditure | ₦1,200,000,000", register_status: "published" },
+    { ...base, field_key: "budget_overhead", excerpt: "Capital expenditure | ₦1,200,000,000", register_status: "complete" },
+    { ...base, field_key: "bursar_name", candidate_state: null, profile_value: "Mr B", excerpt: "2024 Approved Budget\nItem", register_status: "partial" },
+  ], prepared);
+  assert.deepEqual(valid.map((v) => v.proposed.register_status), ["partial", "published", undefined, undefined]);
+  assert.ok(valid.every((v) => v.extraction_method === "html_text"));
 });

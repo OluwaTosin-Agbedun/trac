@@ -4,7 +4,8 @@
 import Link from "next/link";
 import { requireViewer } from "@/server/auth/session";
 import { dataMode } from "@/server/db";
-import { getInstitutionResearch, type ProposalRow, type ScanRow } from "@/server/data/cms/research";
+import { getInstitutionResearch, getWorkerLine, type ProposalRow, type ScanRow } from "@/server/data/cms/research";
+import { WorkerStatusLine } from "../../../research/_components/WorkerStatusLine";
 import { Notice } from "@/components/ui/Form";
 import { indicatorByKey, STATE_LABEL, type AssessmentState } from "@/lib/indicators";
 import { formatDateTime } from "@/lib/format";
@@ -23,11 +24,18 @@ export const SCAN_STATUS_LABEL: Record<ScanRow["status"], string> = {
 };
 
 export function scanCoverageText(s: ScanRow): string {
-  const c = s.coverage as { pagesFetched?: number; documentsFetched?: number; proposalsAdded?: number; failures?: unknown[]; budgetReached?: boolean };
+  const c = s.coverage as {
+    pagesFetched?: number; documentsFetched?: number; proposalsAdded?: number; failures?: unknown[]; budgetReached?: boolean;
+    unreadableDocuments?: unknown[]; sourcesUnchanged?: number;
+  };
   const parts: string[] = [];
   if (typeof c.pagesFetched === "number") parts.push(`${c.pagesFetched} pages`);
   if (typeof c.documentsFetched === "number" && c.documentsFetched) parts.push(`${c.documentsFetched} documents`);
   if (Array.isArray(c.failures) && c.failures.length) parts.push(`${c.failures.length} could not be read`);
+  if (Array.isArray(c.unreadableDocuments) && c.unreadableDocuments.length) {
+    parts.push(`${c.unreadableDocuments.length} document${c.unreadableDocuments.length === 1 ? "" : "s"} with no readable text`);
+  }
+  if (typeof c.sourcesUnchanged === "number" && c.sourcesUnchanged) parts.push(`${c.sourcesUnchanged} unchanged since the last scan`);
   if (c.budgetReached) parts.push("page limit reached");
   if (typeof c.proposalsAdded === "number") parts.push(`${c.proposalsAdded} proposals`);
   return parts.join(" · ");
@@ -93,11 +101,10 @@ function ProposalCard({ p, institutionId }: { p: ProposalRow; institutionId: str
 
 export async function ResearchPanel({ institutionId }: { institutionId: string }) {
   const viewer = await requireViewer();
-  const r = await getInstitutionResearch(viewer, institutionId);
+  const [r, worker] = await Promise.all([getInstitutionResearch(viewer, institutionId), getWorkerLine(viewer)]);
   const isAdmin = viewer.role === "admin";
   const approved = r.hosts.filter((h) => h.approved);
   const local = dataMode() === "local";
-  const configured = Boolean(process.env.ANTHROPIC_API_KEY);
   const lastFinished = r.scans.find((s) => s.status !== "queued" && s.status !== "running") ?? null;
 
   return (
@@ -137,12 +144,7 @@ export async function ResearchPanel({ institutionId }: { institutionId: string }
 
         <div className="flex flex-col gap-4 rounded-md border border-rule bg-white p-5">
           <h3 className="text-base font-semibold text-ink-strong">Scans</h3>
-          {!configured ? (
-            <Notice tone="warn" title="Configuration required">
-              The research assistant needs an ANTHROPIC_API_KEY set on the server (never in the browser). Until then scans stop
-              straight away with this message.
-            </Notice>
-          ) : null}
+          <WorkerStatusLine line={worker} forAdmin={isAdmin} />
           {!approved.length ? (
             <Notice tone="info" title="Needs source confirmation">
               {isAdmin ? "Approve the institution's official website first." : "An administrator must approve the institution's official website first."}
